@@ -1,26 +1,95 @@
-import { useRef, useState, type CSSProperties } from 'react';
-import petUrl from '../assets/pet.png';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import idleUrl from '../assets/pet-idle.png';
+import waveUrl from '../assets/pet-wave.png';
+import jumpUrl from '../assets/pet-jump.png';
+import runUrl from '../assets/pet-run.png';
+import sitUrl from '../assets/pet-sit.png';
+import cheerUrl from '../assets/pet-cheer.png';
+import failUrl from '../assets/pet-fail.png';
 import type { Settings } from '../../shared/types';
 
-const LINES = [
-  '密钥都收在同一个数据目录里了。',
-  '目录上的「全部」，可以一次连上。',
-  '右键选中的输出，就能存成 txt。',
-  '日志开关在上面，开了就会记下来。',
-  '要传文件的话，点那台机器的 SFTP。',
-];
+export type PetSignal = 'idle' | 'connecting' | 'connected' | 'error';
 
-export function Pet({ settings, onPlace }: { settings: Settings; onPlace: (x: number, y: number) => void }) {
+type Action = 'idle' | 'wave' | 'jump' | 'run' | 'sit' | 'cheer' | 'fail';
+
+const POSES: Record<Action, string> = {
+  idle: idleUrl,
+  wave: waveUrl,
+  jump: jumpUrl,
+  run: runUrl,
+  sit: sitUrl,
+  cheer: cheerUrl,
+  fail: failUrl,
+};
+
+const LINES: Record<Action, string[]> = {
+  idle: ['我在这儿看着终端。', '点我一下，我换个姿势。'],
+  wave: ['嗨，要连哪一台？', '挥挥手，会话还在。'],
+  jump: ['连上啦！', '跳一下，当是庆祝。'],
+  run: ['我跟着你跑。', '连接中，先热热身。'],
+  sit: ['先坐一会儿。', '没动静的话，我就打个盹。'],
+  cheer: ['漂亮，这条通了。', '日志、密钥，我都帮你记着。'],
+  fail: ['这次没连上……', '再试一次？我在。'],
+};
+
+const PLAY: Action[] = ['wave', 'jump', 'cheer', 'sit', 'run'];
+
+export function Pet({
+  settings,
+  signal,
+  onPlace,
+}: {
+  settings: Settings;
+  signal: PetSignal;
+  onPlace: (x: number, y: number) => void;
+}) {
+  const [action, setAction] = useState<Action>('idle');
   const [speech, setSpeech] = useState<string | null>(null);
+  const [facing, setFacing] = useState(1);
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const back = useRef<number | null>(null);
+  const signalRef = useRef(signal);
+  signalRef.current = signal;
+
+  const say = (next: Action) => {
+    const lines = LINES[next];
+    setSpeech(lines[Math.floor(Math.random() * lines.length)] ?? lines[0]);
+    window.setTimeout(() => setSpeech(null), 2400);
+  };
+
+  const play = (next: Action, hold = 1700) => {
+    setAction(next);
+    if (back.current) window.clearTimeout(back.current);
+    if (next === 'idle' || next === 'run' && signalRef.current === 'connecting') return;
+    back.current = window.setTimeout(() => {
+      setAction(signalRef.current === 'connecting' ? 'run' : 'idle');
+    }, hold);
+  };
+
+  useEffect(() => {
+    if (signal === 'connecting') play('run', 20000);
+    else if (signal === 'error') play('fail', 2400);
+    else if (signal === 'connected') play('cheer', 1800);
+    else play('idle');
+  }, [signal]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (drag.current || signalRef.current === 'connecting' || signalRef.current === 'error') return;
+      const next = PLAY[Math.floor(Math.random() * PLAY.length)] ?? 'wave';
+      play(next, next === 'sit' ? 4200 : 1800);
+    }, 12000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   if (!settings.petEnabled) return null;
 
   const style: CSSProperties =
-    settings.petX === null || settings.petY === null ? { right: 16, bottom: 32 } : { left: settings.petX, top: settings.petY };
+    settings.petX === null || settings.petY === null ? { right: 12, bottom: 28 } : { left: settings.petX, top: settings.petY };
 
   return (
     <div
-      className="pet"
+      className={`pet act-${action}`}
       style={style}
       onPointerDown={(event) => {
         drag.current = { x: event.clientX, y: event.clientY, moved: false };
@@ -29,8 +98,13 @@ export function Pet({ settings, onPlace }: { settings: Settings; onPlace: (x: nu
       onPointerMove={(event) => {
         const info = drag.current;
         if (!info) return;
-        if (Math.abs(event.clientX - info.x) > 4 || Math.abs(event.clientY - info.y) > 4) info.moved = true;
+        const dx = event.clientX - info.x;
+        const dy = event.clientY - info.y;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) info.moved = true;
         if (!info.moved) return;
+        if (dx > 2) setFacing(1);
+        else if (dx < -2) setFacing(-1);
+        setAction('run');
         const parent = event.currentTarget.parentElement;
         if (!parent) return;
         const bounds = parent.getBoundingClientRect();
@@ -48,8 +122,9 @@ export function Pet({ settings, onPlace }: { settings: Settings; onPlace: (x: nu
         const info = drag.current;
         drag.current = null;
         if (!info?.moved) {
-          setSpeech(LINES[Math.floor(Math.random() * LINES.length)] ?? LINES[0]);
-          window.setTimeout(() => setSpeech(null), 2600);
+          const next = PLAY[Math.floor(Math.random() * PLAY.length)] ?? 'wave';
+          play(next, next === 'sit' ? 3200 : 1600);
+          say(next);
           return;
         }
         const parent = event.currentTarget.parentElement;
@@ -57,10 +132,20 @@ export function Pet({ settings, onPlace }: { settings: Settings; onPlace: (x: nu
         const bounds = parent.getBoundingClientRect();
         const rect = event.currentTarget.getBoundingClientRect();
         onPlace(Math.round(rect.left - bounds.left), Math.round(rect.top - bounds.top));
+        play(signalRef.current === 'connecting' ? 'run' : 'idle');
+      }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        const order: Action[] = ['idle', 'wave', 'jump', 'run', 'cheer', 'sit', 'fail'];
+        const next = order[(order.indexOf(action) + 1) % order.length] ?? 'wave';
+        play(next, next === 'sit' ? 3600 : 1800);
+        say(next);
       }}
     >
       {speech ? <div className="pet-bubble">{speech}</div> : null}
-      <img src={petUrl} alt="" draggable={false} />
+      <div className="pet-bob">
+        <img className={facing < 0 ? 'face-left' : ''} src={POSES[action]} alt="" draggable={false} />
+      </div>
     </div>
   );
 }

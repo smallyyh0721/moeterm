@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { stripAnsi } from '../src/shared/ansi';
-import { formatMode, formatSize, sanitizeFileName } from '../src/shared/format';
+import { formatMode, formatSize, formatSpeed, sanitizeFileName } from '../src/shared/format';
 import { normalizeRemote, remoteJoin, remoteParent } from '../src/shared/remote-path';
 import { assertOpenSshKey, privateKeyNeedsPassphrase } from '../src/core/keys';
 import { SessionLogger } from '../src/core/log';
@@ -19,6 +19,7 @@ describe('文本和路径', () => {
     expect(formatMode(0o040755)).toBe('drwxr-xr-x');
     expect(formatMode(0o100644)).toBe('-rw-r--r--');
     expect(formatSize(1536)).toBe('1.5 KB');
+    expect(formatSpeed(1536)).toBe('1.5 KB/s');
   });
 
   it('整理远程路径', () => {
@@ -45,7 +46,7 @@ describe('文本和路径', () => {
     const logger = new SessionLogger(root, 'nas:01');
     const file = logger.start();
     logger.write(Buffer.from('\u001b[32mhello\u001b[0m\r\n'));
-    logger.stop();
+    expect(logger.stop()).toBe(file);
     await new Promise((resolve) => setTimeout(resolve, 30));
     const text = fs.readFileSync(file, 'utf8');
     expect(text.startsWith('\uFEFF===== MoeTerm')).toBe(true);

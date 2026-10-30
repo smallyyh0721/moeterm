@@ -71,8 +71,8 @@ export function registerIpc(deps: IpcDeps): void {
     if (body.petX === null || typeof body.petX === 'number') patch.petX = body.petX as number | null;
     if (body.petY === null || typeof body.petY === 'number') patch.petY = body.petY as number | null;
     const settings = store.updateSettings(patch);
-    if (typeof patch.logEnabled === 'boolean') sessions.setLogEnabled(patch.logEnabled);
-    return settings;
+    if (typeof patch.logEnabled === 'boolean') sessions.setDefaultLogging(patch.logEnabled);
+    return { ...settings, closedLogFiles: [] as string[] };
   });
   handle(CH.pathsGet, () => ({
     dataDir: store.root,
@@ -119,6 +119,11 @@ export function registerIpc(deps: IpcDeps): void {
     if (typeof payload !== 'string') throw new Error('参数不正确');
     sessions.disconnect(payload);
     return null;
+  });
+  handle(CH.sshSetLog, (payload) => {
+    const body = record(payload);
+    if (typeof body.sessionId !== 'string' || typeof body.enabled !== 'boolean') throw new Error('参数不正确');
+    return sessions.setSessionLog(body.sessionId, body.enabled);
   });
   handle(CH.sftpOpen, (payload) => sessions.sftpOpen(parseConnect(payload)));
   handle(CH.sftpList, (payload) => sessions.sftpList(typeof payload === 'string' ? payload : ''));
@@ -231,6 +236,7 @@ function parseConnect(payload: unknown): ConnectRequest {
     password: typeof body.password === 'string' ? body.password : undefined,
     passphrase: typeof body.passphrase === 'string' ? body.passphrase : undefined,
     trustChangedHostKey: body.trustChangedHostKey === true,
+    logging: body.logging === true,
   };
 }
 

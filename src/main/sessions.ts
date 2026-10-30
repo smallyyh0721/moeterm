@@ -19,6 +19,7 @@ interface LiveSession {
   buffered: number;
   attached: boolean;
   logger: SessionLogger;
+  logging: boolean;
   inputQueue: string[];
   cols: number;
   rows: number;
@@ -41,7 +42,7 @@ interface AuthMaterial {
 export class SessionManager {
   private sessions = new Map<string, LiveSession>();
   private sftpLive: LiveSftp | null = null;
-  private logEnabled = false;
+  private defaultLogging = false;
   private seq = 0;
 
   constructor(
@@ -49,13 +50,17 @@ export class SessionManager {
     private readonly store: DataStore,
   ) {}
 
-  setLogEnabled(enabled: boolean): void {
-    this.logEnabled = enabled;
-    for (const live of this.sessions.values()) {
-      if (live.status !== 'connected') continue;
-      if (enabled) live.logger.start();
-      else live.logger.stop();
-    }
+  setDefaultLogging(enabled: boolean): void {
+    this.defaultLogging = enabled;
+  }
+
+  setSessionLog(sessionId: string, enabled: boolean): { file: string | null } {
+    const live = this.sessions.get(sessionId);
+    if (!live) throw new Error('找不到这个终端');
+    live.logging = enabled;
+    if (!enabled) return { file: live.logger.stop() };
+    if (live.status !== 'connected') return { file: null };
+    return { file: live.logger.start() };
   }
 
   hasLive(): boolean {
@@ -78,6 +83,7 @@ export class SessionManager {
       buffered: 0,
       attached: false,
       logger: new SessionLogger(this.store.root, auth.connection.name),
+      logging: request.logging ?? this.defaultLogging,
       inputQueue: [],
       cols: request.cols,
       rows: request.rows,
@@ -108,9 +114,9 @@ export class SessionManager {
         shell.resize(live.cols, live.rows);
         for (const chunk of live.inputQueue) shell.write(chunk);
         live.inputQueue = [];
-        const logFile = this.logEnabled ? live.logger.start() : undefined;
+        const logFile = live.logging ? live.logger.start() : undefined;
         shell.onData((chunk) => {
-          if (this.logEnabled) live.logger.write(chunk);
+          if (live.logging) live.logger.write(chunk);
           this.pushOut(live, chunk);
         });
         shell.onClose(() => {
@@ -222,19 +228,21 @@ export class SessionManager {
     const live = this.requireSftp();
     const remotePath = remoteJoin(remoteDir || live.cwd, remoteBase(localPath));
     const name = remoteBase(localPath);
+    this.resetSpeed();
     await uploadFile(live.sftp, localPath, remotePath, (transferred, total) => {
-      this.emitProgress({ transferred, total, name, done: false });
+      this.reportTransfer(name, transferred, total, false);
     });
-    this.emitProgress({ transferred: 1, total: 1, name, done: true });
+    this.reportTransfer(name, 1, 1, true);
   }
 
   async sftpDownload(remotePath: string, localPath: string): Promise<void> {
     const live = this.requireSftp();
     const name = remoteBase(remotePath);
+    this.resetSpeed();
     await downloadFile(live.sftp, remotePath, localPath, (transferred, total) => {
-      this.emitProgress({ transferred, total, name, done: false });
+      this.reportTransfer(name, transferred, total, false);
     });
-    this.emitProgress({ transferred: 1, total: 1, name, done: true });
+    this.reportTransfer(name, 1, 1, true);
   }
 
   closeSftp(): void {
@@ -316,6 +324,32 @@ export class SessionManager {
   }
 
   private lastProgress = 0;
+  private speedAt = 0;
+  private speedBytes = 0;
+  private speed = 0;
+
+  private resetSpeed(): void {
+    this.speedAt = 0;
+    this.speedBytes = 0;
+    this.speed = 0;
+  }
+
+  private reportTransfer(name: string, transferred: number, total: number, done: boolean): void {
+    const now = Date.now();
+    if (this.speedAt === 0) {
+      this.speedAt = now;
+      this.speedBytes = transferred;
+    } else {
+      const elapsed = (now - this.speedAt) / 1000;
+      if (elapsed >= 0.25) {
+        this.speed = Math.max(0, (transferred - this.speedBytes) / elapsed);
+        this.speedAt = now;
+        this.speedBytes = transferred;
+      }
+    }
+    this.emitProgress({ transferred, total, name, done, bytesPerSecond: this.speed });
+    if (done) this.resetSpeed();
+  }
 
   private emitProgress(event: SftpProgress): void {
     const now = Date.now();

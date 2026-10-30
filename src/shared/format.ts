@@ -21,6 +21,11 @@ export function formatMode(mode: number): string {
   return text;
 }
 
+export function formatSpeed(bytesPerSecond: number): string {
+  if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) return '0 B/s';
+  return `${formatSize(bytesPerSecond)}/s`;
+}
+
 export function formatSize(size: number): string {
   if (!Number.isFinite(size) || size < 0) return '-';
   if (size < 1024) return `${Math.floor(size)} B`;

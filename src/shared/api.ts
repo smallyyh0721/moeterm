@@ -10,6 +10,10 @@ import type {
   SftpProgress,
 } from './types';
 
+export interface SettingsUpdateResult extends Settings {
+  closedLogFiles?: string[];
+}
+
 export interface DataPaths {
   dataDir: string;
   logDir: string;
@@ -26,7 +30,7 @@ export interface MoetermApi {
   saveConnection(draft: ConnectionSave): Promise<Result<PublicNode[]>>;
   duplicateConnection(id: string): Promise<Result<PublicNode[]>>;
   getSettings(): Promise<Result<Settings>>;
-  updateSettings(patch: Partial<Settings>): Promise<Result<Settings>>;
+  updateSettings(patch: Partial<Settings>): Promise<Result<SettingsUpdateResult>>;
   getPaths(): Promise<Result<DataPaths>>;
   openPath(which: 'data' | 'logs' | 'keys'): Promise<Result<null>>;
   pickKey(): Promise<Result<{ token: string; label: string } | null>>;
@@ -35,6 +39,7 @@ export interface MoetermApi {
   write(sessionId: string, data: string): Promise<Result<null>>;
   resize(sessionId: string, cols: number, rows: number): Promise<Result<null>>;
   disconnect(sessionId: string): Promise<Result<null>>;
+  setSessionLog(sessionId: string, enabled: boolean): Promise<Result<{ file: string | null }>>;
   sftpOpen(request: ConnectRequest): Promise<Result<{ cwd: string }>>;
   sftpList(path: string): Promise<Result<{ cwd: string; entries: RemoteEntry[] }>>;
   sftpMkdir(path: string): Promise<Result<null>>;

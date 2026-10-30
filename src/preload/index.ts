@@ -42,6 +42,7 @@ const api: MoetermApi = {
   write: (sessionId, data) => invoke(CH.sshWrite, { sessionId, data }),
   resize: (sessionId, cols, rows) => invoke(CH.sshResize, { sessionId, cols, rows }),
   disconnect: (sessionId) => invoke(CH.sshDisconnect, sessionId),
+  setSessionLog: (sessionId, enabled) => invoke(CH.sshSetLog, { sessionId, enabled }),
   sftpOpen: (request) => invoke(CH.sftpOpen, request),
   sftpList: (target) => invoke(CH.sftpList, target),
   sftpMkdir: (target) => invoke(CH.sftpMkdir, target),

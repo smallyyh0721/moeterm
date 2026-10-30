@@ -61,7 +61,8 @@ async function createWindow(): Promise<void> {
   });
   mainWindow = win;
   const sessions = new SessionManager(() => mainWindow, store);
-  sessions.setLogEnabled(store.getSettings().logEnabled);
+  sessions.setDefaultLogging(store.getSettings().logEnabled);
+  win.webContents.setVisualZoomLevelLimits(1, 1).catch(() => undefined);
   registerIpc({
     getWindow: () => win,
     store,

@@ -3,23 +3,19 @@ export function TitleBar({
   logOn,
   petOn,
   sftpOn,
-  fullscreen,
   onLog,
   onPet,
   onSftp,
   onSettings,
-  onFullscreen,
 }: {
   subtitle: string;
   logOn: boolean;
   petOn: boolean;
   sftpOn: boolean;
-  fullscreen: boolean;
   onLog: () => void;
   onPet: () => void;
   onSftp: () => void;
   onSettings: () => void;
-  onFullscreen: () => void;
 }) {
   return (
     <header className="titlebar">
@@ -29,7 +25,7 @@ export function TitleBar({
         <span className="brand-sub">{subtitle}</span>
       </div>
       <div className="title-actions">
-        <button type="button" className={logOn ? 'btn on' : 'btn'} onClick={onLog}>
+        <button type="button" className={logOn ? 'btn on' : 'btn'} onClick={onLog} title="只记录当前这个终端">
           日志{logOn ? ' 开' : ' 关'}
         </button>
         <button type="button" className={petOn ? 'btn on' : 'btn'} onClick={onPet}>
@@ -40,9 +36,6 @@ export function TitleBar({
         </button>
         <button type="button" className="btn" onClick={onSettings}>
           设置
-        </button>
-        <button type="button" className="btn" onClick={onFullscreen}>
-          {fullscreen ? '退出全屏' : '全屏'}
         </button>
       </div>
       <div className="win-actions">

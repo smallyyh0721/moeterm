@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatMode, formatMtime, formatSize } from '../../shared/format';
+import { formatMode, formatMtime, formatSize, formatSpeed } from '../../shared/format';
 import { remoteJoin, remoteParent } from '../../shared/remote-path';
 import type { RemoteEntry, SftpProgress } from '../../shared/types';
 
@@ -147,6 +147,7 @@ export function SftpPanel({
       {progress && !progress.done ? (
         <div className="progress">
           <span>{progress.name}</span>
+          <span>{formatSpeed(progress.bytesPerSecond)}</span>
           <span>{progress.total > 0 ? `${Math.min(100, Math.round((progress.transferred / progress.total) * 100))}%` : '…'}</span>
         </div>
       ) : null}

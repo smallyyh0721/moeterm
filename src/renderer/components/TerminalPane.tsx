@@ -11,20 +11,36 @@ export function TerminalPane({
   active,
   fontSize,
   onDims,
+  onFontStep,
+  onRetry,
+  onDismiss,
 }: {
   tab: TabModel;
   active: boolean;
   fontSize: number;
   onDims: (cols: number, rows: number) => void;
+  onFontStep: (delta: number) => void;
+  onRetry: () => void;
+  onDismiss: () => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const sessionRef = useRef<string | null>(tab.sessionId);
   const onDimsRef = useRef(onDims);
+  const onFontStepRef = useRef(onFontStep);
+  const onRetryRef = useRef(onRetry);
+  const onDismissRef = useRef(onDismiss);
+  const statusRef = useRef(tab.status);
+  const messageRef = useRef(tab.message);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   sessionRef.current = tab.sessionId;
   onDimsRef.current = onDims;
+  onFontStepRef.current = onFontStep;
+  onRetryRef.current = onRetry;
+  onDismissRef.current = onDismiss;
+  statusRef.current = tab.status;
+  messageRef.current = tab.message;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -67,15 +83,37 @@ export function TerminalPane({
         void copySelection(term);
         return false;
       }
+      if (statusRef.current === 'closed' && event.key === 'Enter' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        onDismissRef.current();
+        return false;
+      }
+      if (
+        statusRef.current === 'error' &&
+        messageRef.current === '连接超时' &&
+        key === 'r' &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey
+      ) {
+        onRetryRef.current();
+        return false;
+      }
       return true;
     });
     const onMenu = (event: MouseEvent) => {
       event.preventDefault();
       setMenu({ x: event.clientX, y: event.clientY });
     };
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) return;
+      event.preventDefault();
+      onFontStepRef.current(event.deltaY < 0 ? 1 : -1);
+    };
     host.addEventListener('contextmenu', onMenu);
+    host.addEventListener('wheel', onWheel, { passive: false });
     return () => {
       host.removeEventListener('contextmenu', onMenu);
+      host.removeEventListener('wheel', onWheel);
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -122,7 +160,11 @@ export function TerminalPane({
   useEffect(() => {
     const term = termRef.current;
     if (!term || !tab.message) return;
-    if (tab.status === 'error' || tab.status === 'closed') {
+    if (tab.status === 'error' && tab.message === '连接超时') {
+      term.write(`\r\n\x1b[31m连接超时\x1b[0m\r\n\x1b[33m按 R 重试\x1b[0m\r\n`);
+    } else if (tab.status === 'closed') {
+      term.write(`\r\n\x1b[31m${tab.message ?? '连接已断开'}\x1b[0m\r\n\x1b[33m按 Enter 关闭此终端\x1b[0m\r\n`);
+    } else if (tab.status === 'error' && tab.message) {
       term.write(`\r\n\x1b[31m${tab.message}\x1b[0m\r\n`);
     }
   }, [tab.status, tab.message]);
@@ -132,6 +174,11 @@ export function TerminalPane({
   return (
     <div className={active ? 'pane active' : 'pane'}>
       <div className="crt" ref={hostRef} />
+      {tab.status === 'error' && tab.message === '连接超时' ? (
+        <button type="button" className="term-retry" onClick={() => onRetry()}>
+          重试
+        </button>
+      ) : null}
       {menu && term ? (
         <>
           <div className="menu-catch" onMouseDown={() => setMenu(null)} />

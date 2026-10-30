@@ -33,7 +33,7 @@ export function SettingsModal({
         </label>
         <label className="check">
           <input type="checkbox" checked={settings.logEnabled} onChange={(event) => onChange({ logEnabled: event.target.checked })} />
-          保存终端日志
+          新建终端默认记录日志
         </label>
         <div className="path-block">
           <div>数据目录</div>

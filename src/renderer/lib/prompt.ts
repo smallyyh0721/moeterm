@@ -16,6 +16,7 @@ export interface TabModel {
   connectionId: string;
   title: string;
   status: 'connecting' | 'connected' | 'closed' | 'error';
+  logging: boolean;
   message?: string;
   code?: string;
   fingerprint?: string;

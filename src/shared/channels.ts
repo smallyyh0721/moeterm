@@ -16,6 +16,7 @@ export const CH = {
   sshWrite: 'ssh:write',
   sshResize: 'ssh:resize',
   sshDisconnect: 'ssh:disconnect',
+  sshSetLog: 'ssh:set-log',
   sftpOpen: 'sftp:open',
   sftpList: 'sftp:list',
   sftpMkdir: 'sftp:mkdir',

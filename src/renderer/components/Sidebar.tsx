@@ -45,6 +45,14 @@ export function Sidebar({
   return (
     <aside className="sidebar" style={{ width }}>
       <div className="side-head">连接</div>
+      <div className="side-actions">
+        <button type="button" className="btn" onClick={() => onCreateFolder(null)}>
+          新建目录
+        </button>
+        <button type="button" className="btn primary" onClick={() => onCreateConnection(null)}>
+          新建连接
+        </button>
+      </div>
       <input className="side-filter" placeholder="筛选名称或主机" value={filter} onChange={(event) => setFilter(event.target.value)} />
       <div
         className="tree"
@@ -81,14 +89,6 @@ export function Sidebar({
             onMove={onMove}
           />
         ))}
-      </div>
-      <div className="side-actions">
-        <button type="button" className="btn" onClick={() => onCreateFolder(null)}>
-          新建目录
-        </button>
-        <button type="button" className="btn primary" onClick={() => onCreateConnection(null)}>
-          新建连接
-        </button>
       </div>
       {menu ? (
         <div className="menu" style={{ left: menu.x, top: menu.y }} onMouseDown={(event) => event.stopPropagation()}>

@@ -47,14 +47,19 @@ function Shell() {
   const [secretAsk, setSecretAsk] = useState<SecretAsk | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
   const tabsRef = useRef<TabModel[]>([]);
+  const activeIdRef = useRef<string | null>(null);
   const secretsRef = useRef(new Map<string, TypedSecret>());
   const toastRef = useRef<(text: string) => void>(() => undefined);
+  const toggleLogRef = useRef<() => void>(() => undefined);
+  const fontTimer = useRef<number | null>(null);
+  const pendingFont = useRef<number | null>(null);
   tabsRef.current = tabs;
+  activeIdRef.current = activeId;
 
-  const toast = (text: string) => {
+  const toast = (text: string, duration = 3600) => {
     const id = crypto.randomUUID();
     setToasts((current) => [...current, { id, text }]);
-    window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== id)), 3600);
+    window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== id)), duration);
   };
   toastRef.current = toast;
 
@@ -108,12 +113,12 @@ function Shell() {
         void window.moeterm.windowFullscreen();
       } else if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'l') {
         event.preventDefault();
-        void toggleLog();
+        toggleLogRef.current();
       }
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [fullscreen, settings.logEnabled]);
+  }, [fullscreen]);
 
   const active = tabs.find((tab) => tab.localId === activeId) ?? null;
   const activeNode = active ? findPublic(tree, active.connectionId) : null;
@@ -123,15 +128,53 @@ function Shell() {
 
   async function patchSettings(patch: Partial<Settings>) {
     const result = await window.moeterm.updateSettings(patch);
-    if (result.ok) setSettings(result.data);
-    else toast(result.message);
+    if (!result.ok) {
+      toast(result.message);
+      return;
+    }
+    const { closedLogFiles: _ignored, ...next } = result.data;
+    setSettings(next);
+    void _ignored;
+    if (patch.logEnabled === true) toast('之后新建的终端会记录日志');
+    if (patch.logEnabled === false) toast('之后新建的终端不再自动记录');
   }
 
-  async function toggleLog() {
-    const next = !settings.logEnabled;
-    await patchSettings({ logEnabled: next });
-    toast(next ? '终端日志已开启' : '终端日志已关闭');
+  function stepFont(delta: number) {
+    setSettings((current) => {
+      const fontSize = Math.min(24, Math.max(12, current.fontSize + delta));
+      pendingFont.current = fontSize;
+      return { ...current, fontSize };
+    });
+    if (fontTimer.current) window.clearTimeout(fontTimer.current);
+    fontTimer.current = window.setTimeout(() => {
+      const fontSize = pendingFont.current;
+      if (fontSize != null) void window.moeterm.updateSettings({ fontSize });
+    }, 250);
   }
+
+  async function toggleActiveLog() {
+    const tab = tabsRef.current.find((item) => item.localId === activeIdRef.current);
+    if (!tab) {
+      toast('先打开一个终端');
+      return;
+    }
+    const enabled = !tab.logging;
+    setTabs((current) => current.map((item) => (item.localId === tab.localId ? { ...item, logging: enabled } : item)));
+    if (!tab.sessionId) {
+      toast(enabled ? '当前终端连上后开始记录' : '当前终端不记录日志');
+      return;
+    }
+    const result = await window.moeterm.setSessionLog(tab.sessionId, enabled);
+    if (!result.ok) {
+      toast(result.message);
+      return;
+    }
+    if (!enabled) toast(result.data.file ? `当前终端日志已关闭\n${result.data.file}` : '当前终端日志已关闭', 8000);
+    else toast(result.data.file ? `当前终端开始记录\n${result.data.file}` : '当前终端连上后开始记录');
+  }
+  toggleLogRef.current = () => {
+    void toggleActiveLog();
+  };
 
   async function openConnection(connection: PublicConnection, options?: { force?: boolean; secret?: TypedSecret; trust?: boolean; tabLocalId?: string }) {
     if (!options?.force && !options?.tabLocalId) {
@@ -156,16 +199,18 @@ function Shell() {
       return;
     }
     const localId = options?.tabLocalId ?? crypto.randomUUID();
+    const previous = options?.tabLocalId ? tabsRef.current.find((tab) => tab.localId === options.tabLocalId) : undefined;
+    const logging = previous?.logging ?? settings.logEnabled;
     if (!options?.tabLocalId) {
       setTabs((current) => [
         ...current,
-        { localId, sessionId: null, connectionId: connection.id, title: connection.name, status: 'connecting' },
+        { localId, sessionId: null, connectionId: connection.id, title: connection.name, status: 'connecting', logging },
       ]);
       setActiveId(localId);
     } else {
       setTabs((current) =>
         current.map((tab) =>
-          tab.localId === localId ? { ...tab, status: 'connecting', sessionId: null, message: undefined, code: undefined } : tab,
+          tab.localId === localId ? { ...tab, status: 'connecting', sessionId: null, message: undefined, code: undefined, logging } : tab,
         ),
       );
     }
@@ -176,6 +221,7 @@ function Shell() {
       password: secret?.password,
       passphrase: secret?.passphrase,
       trustChangedHostKey: options?.trust,
+      logging: tabsRef.current.find((tab) => tab.localId === localId)?.logging ?? logging,
     });
     if (!result.ok) {
       setTabs((current) =>
@@ -187,6 +233,10 @@ function Shell() {
       return;
     }
     setTabs((current) => current.map((tab) => (tab.localId === localId ? { ...tab, sessionId: result.data.sessionId } : tab)));
+    const wanted = tabsRef.current.find((tab) => tab.localId === localId)?.logging;
+    if (wanted !== undefined && wanted !== logging) {
+      await window.moeterm.setSessionLog(result.data.sessionId, wanted);
+    }
   }
 
   async function openSftp(connection: PublicConnection, secret?: TypedSecret, trust?: boolean) {
@@ -267,11 +317,10 @@ function Shell() {
     <div className="app">
       <TitleBar
         subtitle={activeConnection ? `${activeConnection.username}@${activeConnection.host}` : 'classical shell'}
-        logOn={settings.logEnabled}
+        logOn={Boolean(active?.logging)}
         petOn={settings.petEnabled}
         sftpOn={Boolean(sftpConnection)}
-        fullscreen={fullscreen}
-        onLog={() => void toggleLog()}
+        onLog={() => void toggleActiveLog()}
         onPet={() => void patchSettings({ petEnabled: !settings.petEnabled })}
         onSftp={() => {
           if (sftpConnection) {
@@ -286,7 +335,6 @@ function Shell() {
           void openSftp(activeConnection);
         }}
         onSettings={() => setSettingsOpen(true)}
-        onFullscreen={() => void window.moeterm.windowFullscreen()}
       />
       <div className="body">
         <Sidebar
@@ -369,10 +417,28 @@ function Shell() {
                 tab={tab}
                 active={tab.localId === activeId}
                 fontSize={settings.fontSize}
+                onFontStep={stepFont}
+                onRetry={() => {
+                  const node = findPublic(tree, tab.connectionId);
+                  if (node?.type === 'connection') void openConnection(node, { force: true, tabLocalId: tab.localId });
+                }}
+                onDismiss={() => void closeTab(tab.localId)}
                 onDims={(cols, rows) => setDims({ cols, rows })}
               />
             ))}
-            <Pet settings={settings} onPlace={(petX, petY) => void patchSettings({ petX, petY })} />
+            <Pet
+              settings={settings}
+              signal={
+                active?.status === 'connecting'
+                  ? 'connecting'
+                  : active?.status === 'error'
+                    ? 'error'
+                    : active?.status === 'connected'
+                      ? 'connected'
+                      : 'idle'
+              }
+              onPlace={(petX, petY) => void patchSettings({ petX, petY })}
+            />
           </div>
           {sftpConnection ? (
             <SftpPanel
@@ -388,7 +454,7 @@ function Shell() {
           <footer className="statusbar">
             <span>{activeConnection ? `${activeConnection.username}@${activeConnection.host}:${activeConnection.port}` : '未连接'}</span>
             <span>{active ? statusText(active) : '就绪'}</span>
-            <span>{settings.logEnabled ? '日志 开' : '日志 关'}</span>
+            <span>{active?.logging ? '当前日志 开' : '当前日志 关'}</span>
             <span>UTF-8</span>
             <span className="spacer" />
             {active?.code === 'HOST_KEY_CHANGED' && activeConnection ? (

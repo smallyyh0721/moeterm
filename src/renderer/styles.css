@@ -100,7 +100,7 @@ code { font-family: Consolas, "Cascadia Mono", monospace; }
   border-color: var(--phosphor-dim);
 }
 .tree { flex: 1; overflow: auto; padding-bottom: 8px; }
-.side-actions { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
+.side-actions { display: flex; gap: 6px; padding: 4px 8px 8px; border-bottom: 1px solid var(--line); }
 .side-actions .btn { flex: 1; }
 .empty { color: var(--muted); padding: 16px 12px; line-height: 1.5; }
 
@@ -142,6 +142,17 @@ code { font-family: Consolas, "Cascadia Mono", monospace; }
 .terminal-stack { flex: 1; min-height: 0; position: relative; background: #050806; }
 .pane { display: none; position: absolute; inset: 0; }
 .pane.active { display: block; }
+.term-retry {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  z-index: 3;
+  color: #142016;
+  background: var(--amber);
+  border: 1px solid #8a6a32;
+  padding: 4px 14px;
+  letter-spacing: 0.08em;
+}
 .crt { height: 100%; position: relative; }
 .crt::after {
   content: "";
@@ -199,15 +210,33 @@ code { font-family: Consolas, "Cascadia Mono", monospace; }
 .file-row { border: 0; background: transparent; }
 .file-row:hover, .file-row.selected { background: #1c3324; }
 .sftp-error, .form-error { color: #ffb2ac; padding: 0 10px; margin: 0; }
-.progress { display: flex; justify-content: space-between; padding: 4px 10px; color: var(--amber); }
+.progress { display: flex; gap: 16px; padding: 4px 10px; color: var(--amber); }
 
 .pet {
-  position: absolute; width: 148px; z-index: 4;
+  position: absolute; width: 112px; z-index: 4;
   cursor: grab; user-select: none; touch-action: none;
 }
-.pet img { width: 100%; height: auto; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.45)); animation: float 3.8s ease-in-out infinite; pointer-events: none; }
+.pet-bob {
+  height: 124px;
+  display: flex; align-items: flex-end; justify-content: center;
+  transform-origin: bottom center;
+}
+.pet img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain; object-position: bottom center;
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+.pet img.face-left { transform: scaleX(-1); }
+.pet.act-idle .pet-bob { animation: float 3.6s ease-in-out infinite; }
+.pet.act-wave .pet-bob { animation: sway 0.7s ease-in-out infinite; }
+.pet.act-jump .pet-bob { animation: hop 0.55s ease; }
+.pet.act-run .pet-bob { animation: jog 0.32s linear infinite; }
+.pet.act-cheer .pet-bob { animation: pop 0.5s ease; }
+.pet.act-fail .pet-bob { animation: shake 0.36s linear 3; }
+.pet.act-sit .pet-bob { transform: translateY(6px); }
 .pet-bubble {
-  position: absolute; left: -20px; right: -10px; bottom: 100%;
+  position: absolute; left: -8px; right: -8px; bottom: 100%;
   background: #f4ffe8; color: #1a2418;
   border: 2px solid #203028;
   padding: 6px 8px; font-size: 12px; line-height: 1.4;
@@ -215,6 +244,29 @@ code { font-family: Consolas, "Cascadia Mono", monospace; }
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-7px); }
+}
+@keyframes sway {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+@keyframes hop {
+  0% { transform: translateY(6px) scale(1, 0.94); }
+  45% { transform: translateY(-14px) scale(0.96, 1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes jog {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(-3deg); }
+}
+@keyframes pop {
+  0% { transform: scale(0.92); }
+  55% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 .modal-back {
@@ -266,7 +318,8 @@ code { font-family: Consolas, "Cascadia Mono", monospace; }
 .toast {
   background: #223226; color: var(--phosphor);
   border: 1px solid #3e6248;
-  padding: 8px 12px; max-width: 320px;
+  padding: 8px 12px; max-width: 420px;
+  white-space: pre-wrap; word-break: break-all;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 .boot { height: 100%; display: grid; place-items: center; color: var(--phosphor); }

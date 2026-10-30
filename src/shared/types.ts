@@ -82,6 +82,7 @@ export interface ConnectRequest {
   password?: string;
   passphrase?: string;
   trustChangedHostKey?: boolean;
+  logging?: boolean;
 }
 
 export interface SessionStatusEvent {
@@ -100,6 +101,7 @@ export interface SftpProgress {
   total: number;
   name: string;
   done: boolean;
+  bytesPerSecond: number;
   error?: string;
 }
 

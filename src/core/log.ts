@@ -31,13 +31,15 @@ export class SessionLogger {
     this.stream.write(stripAnsi(this.decoder.write(chunk)));
   }
 
-  stop(): void {
-    if (!this.stream) return;
+  stop(): string | null {
+    if (!this.stream || !this.file) return null;
+    const file = this.file;
     const rest = stripAnsi(this.decoder.end());
     if (rest) this.stream.write(rest);
     this.stream.write(`\r\n===== 结束：${new Date().toISOString()} =====\r\n`);
     this.stream.end();
     this.stream = null;
     this.decoder = new StringDecoder('utf8');
+    return file;
   }
 }
