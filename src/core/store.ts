@@ -11,6 +11,7 @@ import type {
   StoredNode,
 } from '../shared/types';
 import { defaultSettings } from '../shared/types';
+import { isThemeSlug } from '../themes/validate';
 import {
   collectConnections,
   connectionsInNode,
@@ -72,6 +73,8 @@ export class DataStore {
   }
 
   get logDir(): string {
+    const custom = this.settings.logDir;
+    if (typeof custom === 'string' && path.isAbsolute(custom)) return custom;
     return path.join(this.root, 'logs');
   }
 
@@ -93,8 +96,13 @@ export class DataStore {
     next.sidebarWidth = clamp(Math.round(next.sidebarWidth), LIMITS.sideMin, LIMITS.sideMax);
     next.petEnabled = Boolean(next.petEnabled);
     next.logEnabled = Boolean(next.logEnabled);
+    if (typeof next.activePetId !== 'string' || !/^(builtin|[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(next.activePetId)) {
+      next.activePetId = 'builtin';
+    }
     next.petX = finiteOrNull(next.petX);
     next.petY = finiteOrNull(next.petY);
+    if (typeof next.logDir !== 'string' || !path.isAbsolute(next.logDir)) next.logDir = null;
+    if (!isThemeSlug(next.theme)) next.theme = 'classic';
     this.settings = next;
     this.writeJson(path.join(this.root, 'settings.json'), next);
     return this.getSettings();

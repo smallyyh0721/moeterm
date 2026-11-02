@@ -1,96 +1,146 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import idleUrl from '../assets/pet-idle.png';
-import waveUrl from '../assets/pet-wave.png';
-import jumpUrl from '../assets/pet-jump.png';
-import runUrl from '../assets/pet-run.png';
-import sitUrl from '../assets/pet-sit.png';
-import cheerUrl from '../assets/pet-cheer.png';
-import failUrl from '../assets/pet-fail.png';
-import type { Settings } from '../../shared/types';
+import { PETDEX_ANIMATIONS, type PetdexAnimation } from '../../shared/petdex';
+import type { InstalledPet, Settings } from '../../shared/types';
+import { randomJoke } from '../lib/jokes';
 
 export type PetSignal = 'idle' | 'connecting' | 'connected' | 'error';
 
 type Action = 'idle' | 'wave' | 'jump' | 'run' | 'sit' | 'cheer' | 'fail';
 
-const POSES: Record<Action, string> = {
-  idle: idleUrl,
-  wave: waveUrl,
-  jump: jumpUrl,
-  run: runUrl,
-  sit: sitUrl,
-  cheer: cheerUrl,
-  fail: failUrl,
+const poseLoaders: Record<Action, () => Promise<{ default: string }>> = {
+  idle: () => import('../assets/pet-idle.png'),
+  wave: () => import('../assets/pet-wave.png'),
+  jump: () => import('../assets/pet-jump.png'),
+  run: () => import('../assets/pet-run.png'),
+  sit: () => import('../assets/pet-sit.png'),
+  cheer: () => import('../assets/pet-cheer.png'),
+  fail: () => import('../assets/pet-fail.png'),
 };
+const poseUrl = new Map<Action, string>();
+const poseTask = new Map<Action, Promise<string>>();
 
-const LINES: Record<Action, string[]> = {
-  idle: ['我在这儿看着终端。', '点我一下，我换个姿势。'],
-  wave: ['嗨，要连哪一台？', '挥挥手，会话还在。'],
-  jump: ['连上啦！', '跳一下，当是庆祝。'],
-  run: ['我跟着你跑。', '连接中，先热热身。'],
-  sit: ['先坐一会儿。', '没动静的话，我就打个盹。'],
-  cheer: ['漂亮，这条通了。', '日志、密钥，我都帮你记着。'],
-  fail: ['这次没连上……', '再试一次？我在。'],
-};
+function loadPose(action: Action): Promise<string> {
+  const ready = poseUrl.get(action);
+  if (ready) return Promise.resolve(ready);
+  const pending = poseTask.get(action);
+  if (pending) return pending;
+  const task = poseLoaders[action]().then((mod) => {
+    poseUrl.set(action, mod.default);
+    return mod.default;
+  });
+  poseTask.set(action, task);
+  return task;
+}
 
-const PLAY: Action[] = ['wave', 'jump', 'cheer', 'sit', 'run'];
+const BUILTIN_LOOP: Action[] = ['idle', 'wave', 'jump', 'run', 'cheer', 'sit', 'idle', 'wave'];
 
 export function Pet({
   settings,
   signal,
+  pet,
   onPlace,
 }: {
   settings: Settings;
   signal: PetSignal;
+  pet: InstalledPet | null;
   onPlace: (x: number, y: number) => void;
 }) {
   const [action, setAction] = useState<Action>('idle');
+  const [poseSrc, setPoseSrc] = useState<string | null>(null);
+  const [burst, setBurst] = useState<PetdexAnimation | null>(null);
+  const [hovered, setHovered] = useState(false);
   const [speech, setSpeech] = useState<string | null>(null);
   const [facing, setFacing] = useState(1);
+  const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
-  const back = useRef<number | null>(null);
   const signalRef = useRef(signal);
+  const loopIndex = useRef(0);
   signalRef.current = signal;
 
-  const say = (next: Action) => {
-    const lines = LINES[next];
-    setSpeech(lines[Math.floor(Math.random() * lines.length)] ?? lines[0]);
-    window.setTimeout(() => setSpeech(null), 2400);
-  };
-
-  const play = (next: Action, hold = 1700) => {
-    setAction(next);
-    if (back.current) window.clearTimeout(back.current);
-    if (next === 'idle' || next === 'run' && signalRef.current === 'connecting') return;
-    back.current = window.setTimeout(() => {
-      setAction(signalRef.current === 'connecting' ? 'run' : 'idle');
-    }, hold);
-  };
+  useEffect(() => {
+    if (!pet) {
+      setSheetUrl(null);
+      return;
+    }
+    let cancel = false;
+    void window.moeterm.petSheet(pet.id).then((result) => {
+      if (!cancel && result.ok) setSheetUrl(`data:${result.data.mime};base64,${result.data.base64}`);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [pet]);
 
   useEffect(() => {
-    if (signal === 'connecting') play('run', 20000);
-    else if (signal === 'error') play('fail', 2400);
-    else if (signal === 'connected') play('cheer', 1800);
-    else play('idle');
-  }, [signal]);
-
-  useEffect(() => {
+    if (pet) return;
+    if (signal === 'connecting') {
+      setAction('run');
+      return;
+    }
+    if (signal === 'error') {
+      setAction('fail');
+      return;
+    }
     const timer = window.setInterval(() => {
       if (drag.current || signalRef.current === 'connecting' || signalRef.current === 'error') return;
-      const next = PLAY[Math.floor(Math.random() * PLAY.length)] ?? 'wave';
-      play(next, next === 'sit' ? 4200 : 1800);
-    }, 12000);
+      loopIndex.current = (loopIndex.current + 1) % BUILTIN_LOOP.length;
+      setAction(BUILTIN_LOOP[loopIndex.current] ?? 'idle');
+    }, 2200);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [pet, signal]);
+
+  useEffect(() => {
+    if (pet || !settings.petEnabled) return;
+    let cancel = false;
+    void loadPose(action).then((url) => {
+      if (!cancel) setPoseSrc(url);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [action, pet, settings.petEnabled]);
+
+  useEffect(() => {
+    if (pet || !settings.petEnabled) return;
+    const prefetch = () => {
+      for (const name of BUILTIN_LOOP) void loadPose(name);
+    };
+    const idleId = window.requestIdleCallback?.(prefetch);
+    const timer = idleId === undefined ? window.setTimeout(prefetch, 600) : 0;
+    return () => {
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [pet, settings.petEnabled]);
+
+  useEffect(() => {
+    if (!pet) return;
+    const timer = window.setInterval(() => {
+      if (drag.current || signalRef.current === 'connecting' || signalRef.current === 'error') return;
+      setBurst(Math.random() < 0.5 ? 'jumping' : 'waving');
+      window.setTimeout(() => setBurst(null), 1400);
+    }, 5200);
+    return () => window.clearInterval(timer);
+  }, [pet]);
 
   if (!settings.petEnabled) return null;
 
   const style: CSSProperties =
     settings.petX === null || settings.petY === null ? { right: 12, bottom: 28 } : { left: settings.petX, top: settings.petY };
+  const row = spriteRow(signal, hovered, burst, facing);
 
   return (
     <div
-      className={`pet act-${action}`}
+      className={`pet ${pet ? 'sprite' : ''} act-${action}`}
       style={style}
+      onPointerEnter={() => {
+        setHovered(true);
+        setSpeech(randomJoke());
+      }}
+      onPointerLeave={() => {
+        setHovered(false);
+        setSpeech(null);
+      }}
       onPointerDown={(event) => {
         drag.current = { x: event.clientX, y: event.clientY, moved: false };
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -102,6 +152,7 @@ export function Pet({
         const dy = event.clientY - info.y;
         if (Math.abs(dx) > 4 || Math.abs(dy) > 4) info.moved = true;
         if (!info.moved) return;
+        setSpeech(null);
         if (dx > 2) setFacing(1);
         else if (dx < -2) setFacing(-1);
         setAction('run');
@@ -122,9 +173,13 @@ export function Pet({
         const info = drag.current;
         drag.current = null;
         if (!info?.moved) {
-          const next = PLAY[Math.floor(Math.random() * PLAY.length)] ?? 'wave';
-          play(next, next === 'sit' ? 3200 : 1600);
-          say(next);
+          if (!pet) {
+            loopIndex.current = (loopIndex.current + 1) % BUILTIN_LOOP.length;
+            setAction(BUILTIN_LOOP[loopIndex.current] ?? 'wave');
+          } else {
+            setBurst('jumping');
+            window.setTimeout(() => setBurst(null), 1200);
+          }
           return;
         }
         const parent = event.currentTarget.parentElement;
@@ -132,20 +187,69 @@ export function Pet({
         const bounds = parent.getBoundingClientRect();
         const rect = event.currentTarget.getBoundingClientRect();
         onPlace(Math.round(rect.left - bounds.left), Math.round(rect.top - bounds.top));
-        play(signalRef.current === 'connecting' ? 'run' : 'idle');
-      }}
-      onContextMenu={(event) => {
-        event.preventDefault();
-        const order: Action[] = ['idle', 'wave', 'jump', 'run', 'cheer', 'sit', 'fail'];
-        const next = order[(order.indexOf(action) + 1) % order.length] ?? 'wave';
-        play(next, next === 'sit' ? 3600 : 1800);
-        say(next);
       }}
     >
       {speech ? <div className="pet-bubble">{speech}</div> : null}
-      <div className="pet-bob">
-        <img className={facing < 0 ? 'face-left' : ''} src={POSES[action]} alt="" draggable={false} />
-      </div>
+      {pet && sheetUrl ? (
+        <SpriteSheet pet={pet} sheetUrl={sheetUrl} row={row} facing={facing} />
+      ) : (
+        <div className="pet-bob">
+          {poseSrc ? <img className={facing < 0 ? 'face-left' : ''} src={poseSrc} alt="" draggable={false} /> : null}
+        </div>
+      )}
     </div>
   );
+}
+
+function SpriteSheet({
+  pet,
+  sheetUrl,
+  row,
+  facing,
+}: {
+  pet: InstalledPet;
+  sheetUrl: string;
+  row: PetdexAnimation;
+  facing: number;
+}) {
+  const animation = PETDEX_ANIMATIONS[row];
+  const [frame, setFrame] = useState(0);
+  useEffect(() => {
+    const durations = animation.durations;
+    let index = 0;
+    let timer = 0;
+    setFrame(0);
+    const tick = () => {
+      index = (index + 1) % durations.length;
+      setFrame(index);
+      timer = window.setTimeout(tick, durations[index] ?? 140);
+    };
+    timer = window.setTimeout(tick, durations[0] ?? 140);
+    return () => window.clearTimeout(timer);
+  }, [animation, row]);
+
+  const scale = 112 / pet.frameWidth;
+  const width = pet.frameWidth * scale;
+  const height = pet.frameHeight * scale;
+  return (
+    <div
+      className={facing < 0 ? 'pet-sprite face-left' : 'pet-sprite'}
+      style={{
+        width,
+        height,
+        backgroundImage: `url("${sheetUrl}")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: `${-frame * width}px ${-animation.row * height}px`,
+        backgroundSize: `${width * 8}px ${height * pet.rows}px`,
+      }}
+    />
+  );
+}
+
+function spriteRow(signal: PetSignal, hovered: boolean, burst: PetdexAnimation | null, facing: number): PetdexAnimation {
+  if (signal === 'connecting') return facing < 0 ? 'running-left' : 'running-right';
+  if (signal === 'error') return 'failed';
+  if (hovered) return 'waving';
+  if (burst) return burst;
+  return 'idle';
 }

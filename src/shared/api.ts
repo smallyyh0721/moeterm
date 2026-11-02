@@ -2,6 +2,7 @@ import type { CH } from './channels';
 import type { Result } from './result';
 import type {
   ConnectionSave,
+  InstalledPet,
   ConnectRequest,
   PublicNode,
   RemoteEntry,
@@ -16,6 +17,8 @@ export interface SettingsUpdateResult extends Settings {
 
 export interface DataPaths {
   dataDir: string;
+  defaultDir: string;
+  installedDefault: boolean;
   logDir: string;
   keyDir: string;
   version: string;
@@ -33,6 +36,14 @@ export interface MoetermApi {
   updateSettings(patch: Partial<Settings>): Promise<Result<SettingsUpdateResult>>;
   getPaths(): Promise<Result<DataPaths>>;
   openPath(which: 'data' | 'logs' | 'keys'): Promise<Result<null>>;
+  chooseDataDir(): Promise<Result<string | null>>;
+  chooseLogDir(): Promise<Result<string | null>>;
+  relaunch(): Promise<Result<null>>;
+  listPets(): Promise<Result<InstalledPet[]>>;
+  installPetSlug(slug: string): Promise<Result<{ pet: InstalledPet; pets: InstalledPet[] }>>;
+  installPetFile(): Promise<Result<{ pet: InstalledPet; pets: InstalledPet[] } | null>>;
+  petSheet(id: string): Promise<Result<{ mime: string; base64: string }>>;
+  onPetProgress(cb: (event: { ratio: number; label: string }) => void): () => void;
   pickKey(): Promise<Result<{ token: string; label: string } | null>>;
   connect(request: ConnectRequest): Promise<Result<{ sessionId: string }>>;
   attach(sessionId: string): Promise<Result<null>>;

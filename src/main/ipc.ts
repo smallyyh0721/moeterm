@@ -1,20 +1,26 @@
-import { clipboard, dialog, ipcMain, shell, type BrowserWindow } from 'electron';
+import { app, clipboard, dialog, ipcMain, shell, type BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { assertMovable, copyData, hasSavedData, writeDataDirChoice } from '../core/data-dir';
 import { HostKeyChangedError } from '../core/errors';
+import { PetLibrary } from '../core/pets';
 import type { DataStore } from '../core/store';
 import type { SessionManager } from './sessions';
 import { CH } from '../shared/channels';
 import { fail, ok, type Result } from '../shared/result';
 import { remoteBase } from '../shared/remote-path';
 import type { ConnectionSave, ConnectRequest } from '../shared/types';
+import { isThemeSlug } from '../themes/validate';
 
 interface IpcDeps {
   getWindow: () => BrowserWindow;
   store: DataStore;
   sessions: SessionManager;
   version: string;
+  defaultDir: string;
+  installedDefault: boolean;
+  dataDirPointer: string;
   requestQuit: () => void;
 }
 
@@ -22,6 +28,7 @@ const pendingKeys = new Map<string, string>();
 
 export function registerIpc(deps: IpcDeps): void {
   const { store, sessions } = deps;
+  const pets = new PetLibrary(path.join(store.root, 'pets'));
 
   handle(CH.treeGet, () => store.getTree());
   handle(CH.folderCreate, (payload) => {
@@ -66,20 +73,88 @@ export function registerIpc(deps: IpcDeps): void {
     const patch: Partial<import('../shared/types').Settings> = {};
     if (typeof body.petEnabled === 'boolean') patch.petEnabled = body.petEnabled;
     if (typeof body.logEnabled === 'boolean') patch.logEnabled = body.logEnabled;
+    if (body.logDir === null) patch.logDir = null;
+    else if (typeof body.logDir === 'string' && path.isAbsolute(body.logDir)) patch.logDir = body.logDir;
     if (typeof body.fontSize === 'number') patch.fontSize = body.fontSize;
     if (typeof body.sidebarWidth === 'number') patch.sidebarWidth = body.sidebarWidth;
     if (body.petX === null || typeof body.petX === 'number') patch.petX = body.petX as number | null;
     if (body.petY === null || typeof body.petY === 'number') patch.petY = body.petY as number | null;
+    if (typeof body.activePetId === 'string') patch.activePetId = body.activePetId;
+    if (isThemeSlug(body.theme)) patch.theme = body.theme;
     const settings = store.updateSettings(patch);
     if (typeof patch.logEnabled === 'boolean') sessions.setDefaultLogging(patch.logEnabled);
+    if (patch.logDir !== undefined) sessions.setLogDirectory(store.logDir);
     return { ...settings, closedLogFiles: [] as string[] };
   });
   handle(CH.pathsGet, () => ({
     dataDir: store.root,
+    defaultDir: deps.defaultDir,
+    installedDefault: deps.installedDefault,
     logDir: store.logDir,
     keyDir: store.keyDir,
     version: deps.version,
   }));
+  handle(CH.petsList, () => pets.list());
+  handle(CH.petsInstallSlug, async (payload) => {
+    if (typeof payload !== 'string') throw new Error('请填写宠物名称');
+    const report = (ratio: number, label: string) => {
+      const win = deps.getWindow();
+      if (!win.isDestroyed()) win.webContents.send(CH.petsProgress, { ratio, label });
+    };
+    const pet = await pets.installSlug(payload.trim().toLowerCase(), report);
+    return { pet, pets: pets.list() };
+  });
+  handle(CH.petsInstallFile, async () => {
+    const report = (ratio: number, label: string) => {
+      const win = deps.getWindow();
+      if (!win.isDestroyed()) win.webContents.send(CH.petsProgress, { ratio, label });
+    };
+    const picked = await dialog.showOpenDialog(deps.getWindow(), {
+      title: '导入 Petdex 宠物',
+      properties: ['openFile', 'openDirectory'],
+      filters: [{ name: 'Petdex', extensions: ['zip', 'json'] }],
+    });
+    if (picked.canceled || !picked.filePaths[0]) return null;
+    report(0.15, '正在读取宠物包');
+    const pet = await pets.installPath(picked.filePaths[0]);
+    report(1, '安装完成');
+    return { pet, pets: pets.list() };
+  });
+  handle(CH.petsSheet, (payload) => {
+    if (typeof payload !== 'string') throw new Error('参数不正确');
+    return pets.sheet(payload);
+  });
+  handle(CH.pathChoose, async () => {
+    const picked = await dialog.showOpenDialog(deps.getWindow(), {
+      title: '选择数据目录',
+      defaultPath: store.root,
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (picked.canceled || !picked.filePaths[0]) return null;
+    const target = path.resolve(picked.filePaths[0]);
+    assertMovable(store.root, target);
+    if (!hasSavedData(target)) copyData(store.root, target);
+    writeDataDirChoice(deps.dataDirPointer, target);
+    return target;
+  });
+  handle(CH.pathChooseLog, async () => {
+    const picked = await dialog.showOpenDialog(deps.getWindow(), {
+      title: '选择日志目录',
+      defaultPath: store.logDir,
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (picked.canceled || !picked.filePaths[0]) return null;
+    const target = path.resolve(picked.filePaths[0]);
+    fs.mkdirSync(target, { recursive: true });
+    store.updateSettings({ logDir: target });
+    sessions.setLogDirectory(target);
+    return target;
+  });
+  handle(CH.appRelaunch, () => {
+    app.relaunch();
+    deps.requestQuit();
+    return null;
+  });
   handle(CH.pathOpen, async (payload) => {
     const which = payload === 'logs' ? store.logDir : payload === 'keys' ? store.keyDir : store.root;
     const error = await shell.openPath(which);

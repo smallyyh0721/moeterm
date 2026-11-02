@@ -1,22 +1,53 @@
+import { themes } from '../../themes/registry';
+
 const ART = String.raw`
- __  __             _____
-|  \/  | ___   ___ |_   _|___ _ __ _ __ ___
-| |\/| |/ _ \ / _ \  | |/ _ \ '__| '_ \ _ \
-| |  | | (_) |  __/  | |  __/ |  | | | | | |
-|_|  |_|\___/ \___|  |_|\___|_|  |_| |_| |_|
+  _    _ _   _        _____
+ | | _(_) |_| |_ _   |_   _|__ _ __ _ __ ___
+ | |/ / | __| __| | | || |/ _ \ '__| '_ ' _ \
+ |   <| | |_| |_| |_| || |  __/ |  | | | | | |
+ |_|\_\_|\__|\__|\__, ||_|\___|_|  |_| |_| |_|
+                 |___/
 `;
 
-export function Welcome() {
+export function Welcome({
+  portrait,
+  dataDir,
+  installedDefault,
+}: {
+  portrait: string | null;
+  dataDir: string;
+  installedDefault: boolean;
+}) {
+  const themeNames = themes.map((item) => item.file.name).join('、');
   return (
     <div className="welcome">
-      <pre>{ART}</pre>
-      <p>古典 Linux 风格的 SSH / SFTP 终端</p>
+      {portrait ? (
+        <div className="welcome-lockup">
+          <img className="welcome-portrait" src={portrait} alt="" />
+          <pre>{ART}</pre>
+        </div>
+      ) : (
+        <pre>{ART}</pre>
+      )}
+      <p>古典linux风自由终端</p>
+      <h2>桌面宠物</h2>
       <ul>
-        <li>左侧按目录整理连接，目录上的「全部」会一次打开里面的会话。</li>
-        <li>右键终端可以复制、粘贴，或把选中内容和整个缓冲区导出成 txt。</li>
-        <li>标题栏的「日志」会把之后的输出写进数据目录。</li>
-        <li>私钥、密码和日志都在同一个数据目录里。</li>
+        <li>标题栏的「宠物」可以显示或关掉。</li>
+        <li>鼠标放上去会弹出程序员梗。点一下换姿势，按住可以拖到别处。</li>
+        <li>正在连接时它会跑，连上会欢呼，失败会垂头。</li>
+        <li>想换一只：打开「设置」，输入 Petdex 名称，例如 boba，或导入本地宠物包。</li>
       </ul>
+      <h2>界面风格</h2>
+      <ul>
+        <li>打开「设置」里的「界面风格」，可以在{themeNames}之间切换。</li>
+        <li>选中的风格会记下来。带画像的风格会显示在首页名字旁边。</li>
+      </ul>
+      <p>
+        {installedDefault
+          ? '连接和宠物默认放在安装目录的 data 文件夹。改数据目录需要重启。日志目录可以在「设置」里直接改。'
+          : '改数据目录需要重启。日志目录可以在「设置」里直接改。安装之后，数据默认在安装目录下的 data 文件夹。'}
+      </p>
+      {dataDir ? <p className="path-line"><code>{dataDir}</code></p> : null}
       <p className="hint">F11 全屏 · Ctrl+Shift+C 复制 · Ctrl+Shift+V 粘贴</p>
     </div>
   );

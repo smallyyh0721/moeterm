@@ -1,18 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type { DataPaths } from '../shared/api';
 import { findParentId, findPublic, folderOptions } from '../shared/tree';
-import type { ConnectionSave, PublicConnection, PublicNode, Settings, SftpProgress, StoredNode } from '../shared/types';
+import type { ConnectionSave, InstalledPet, PublicConnection, PublicNode, Settings, SftpProgress, StoredNode } from '../shared/types';
 import { defaultSettings } from '../shared/types';
-import { ConnectionModal } from './components/ConnectionModal';
-import { FolderModal } from './components/FolderModal';
 import { Pet } from './components/Pet';
-import { SettingsModal } from './components/SettingsModal';
-import { SftpPanel } from './components/SftpPanel';
 import { Sidebar } from './components/Sidebar';
-import { TerminalPane } from './components/TerminalPane';
 import { TitleBar } from './components/TitleBar';
 import { Welcome } from './components/Welcome';
+import { applyTheme, themeById } from '../themes/registry';
 import { type SecretKind, type TabModel, type TypedSecret, neededPrompt } from './lib/prompt';
+import { closeSlot, focusTab, paneGridArea, placeNewTab, seedSlots, type SplitLayout } from './lib/split';
+
+const TerminalPane = lazy(() => import('./components/TerminalPane').then((mod) => ({ default: mod.TerminalPane })));
+const SftpPanel = lazy(() => import('./components/SftpPanel').then((mod) => ({ default: mod.SftpPanel })));
+const SettingsModal = lazy(() => import('./components/SettingsModal').then((mod) => ({ default: mod.SettingsModal })));
+const ConnectionModal = lazy(() => import('./components/ConnectionModal').then((mod) => ({ default: mod.ConnectionModal })));
+const FolderModal = lazy(() => import('./components/FolderModal').then((mod) => ({ default: mod.FolderModal })));
 
 interface SecretAsk {
   connection: PublicConnection;
@@ -24,16 +27,22 @@ interface SecretAsk {
 }
 
 export function App() {
-  if (typeof window.moeterm === 'undefined') return <div className="boot">MoeTerm 正在启动</div>;
+  if (typeof window.moeterm === 'undefined') return <div className="boot">kittyTerm 正在启动</div>;
   return <Shell />;
 }
 
 function Shell() {
   const [tree, setTree] = useState<PublicNode[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings());
+  const [portrait, setPortrait] = useState<string | null>(null);
   const [paths, setPaths] = useState<DataPaths | null>(null);
+  const [pets, setPets] = useState<InstalledPet[]>([]);
   const [tabs, setTabs] = useState<TabModel[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [split, setSplit] = useState<SplitLayout>('single');
+  const [slots, setSlots] = useState<string[]>([]);
+  const [colRatio, setColRatio] = useState(0.55);
+  const [rowRatio, setRowRatio] = useState(0.5);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sftpId, setSftpId] = useState<string | null>(null);
   const [progress, setProgress] = useState<SftpProgress | null>(null);
@@ -48,6 +57,8 @@ function Shell() {
   const [confirmClose, setConfirmClose] = useState(false);
   const tabsRef = useRef<TabModel[]>([]);
   const activeIdRef = useRef<string | null>(null);
+  const splitRef = useRef<SplitLayout>('single');
+  const stackRef = useRef<HTMLDivElement>(null);
   const secretsRef = useRef(new Map<string, TypedSecret>());
   const toastRef = useRef<(text: string) => void>(() => undefined);
   const toggleLogRef = useRef<() => void>(() => undefined);
@@ -55,6 +66,7 @@ function Shell() {
   const pendingFont = useRef<number | null>(null);
   tabsRef.current = tabs;
   activeIdRef.current = activeId;
+  splitRef.current = split;
 
   const toast = (text: string, duration = 3600) => {
     const id = crypto.randomUUID();
@@ -64,16 +76,34 @@ function Shell() {
   toastRef.current = toast;
 
   useEffect(() => {
+    const pack = themeById(settings.theme);
+    applyTheme(pack);
+    let cancel = false;
+    void pack.loadPortrait().then((url) => {
+      if (!cancel) setPortrait(url);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [settings.theme]);
+
+  useEffect(() => {
     void (async () => {
-      const [treeResult, settingsResult, pathResult] = await Promise.all([
-        window.moeterm.getTree(),
-        window.moeterm.getSettings(),
-        window.moeterm.getPaths(),
-      ]);
-      if (treeResult.ok) setTree(treeResult.data);
-      else toastRef.current(treeResult.message);
-      if (settingsResult.ok) setSettings(settingsResult.data);
-      if (pathResult.ok) setPaths(pathResult.data);
+      try {
+        const [treeResult, settingsResult, pathResult, petResult] = await Promise.all([
+          window.moeterm.getTree(),
+          window.moeterm.getSettings(),
+          window.moeterm.getPaths(),
+          window.moeterm.listPets(),
+        ]);
+        if (treeResult.ok) setTree(treeResult.data);
+        else toastRef.current(treeResult.message);
+        if (settingsResult.ok) setSettings(settingsResult.data);
+        if (pathResult.ok) setPaths(pathResult.data);
+        if (petResult.ok) setPets(petResult.data);
+      } finally {
+        window.__kittyBootDone?.();
+      }
     })();
     const offStatus = window.moeterm.onSshStatus((event) => {
       setTabs((current) =>
@@ -207,6 +237,7 @@ function Shell() {
         { localId, sessionId: null, connectionId: connection.id, title: connection.name, status: 'connecting', logging },
       ]);
       setActiveId(localId);
+      setSlots((current) => placeNewTab(current, localId, splitRef.current));
     } else {
       setTabs((current) =>
         current.map((tab) =>
@@ -292,6 +323,7 @@ function Shell() {
     if (tab?.sessionId) await window.moeterm.disconnect(tab.sessionId);
     const rest = tabsRef.current.filter((item) => item.localId !== localId);
     setTabs(rest);
+    setSlots((current) => closeSlot(current, localId));
     if (activeId === localId) setActiveId(rest[rest.length - 1]?.localId ?? null);
   }
 
@@ -320,8 +352,18 @@ function Shell() {
         logOn={Boolean(active?.logging)}
         petOn={settings.petEnabled}
         sftpOn={Boolean(sftpConnection)}
+        split={split}
         onLog={() => void toggleActiveLog()}
         onPet={() => void patchSettings({ petEnabled: !settings.petEnabled })}
+        onSplit={(layout) => {
+          if (layout === 'single' || layout === split) {
+            setSplit('single');
+            setSlots([]);
+            return;
+          }
+          setSplit(layout);
+          setSlots(seedSlots(layout, tabsRef.current.map((tab) => tab.localId), activeIdRef.current));
+        }}
         onSftp={() => {
           if (sftpConnection) {
             void window.moeterm.sftpClose();
@@ -400,22 +442,54 @@ function Shell() {
         <main className="stage">
           <div className="tabbar">
             {tabs.map((tab) => (
-              <div key={tab.localId} className={tab.localId === activeId ? 'tab active' : 'tab'} onClick={() => setActiveId(tab.localId)}>
+              <div
+                key={tab.localId}
+                className={tab.localId === activeId ? 'tab active' : 'tab'}
+                onClick={() => {
+                  setActiveId(tab.localId);
+                  setSlots((current) => focusTab(current, tab.localId, splitRef.current, activeIdRef.current));
+                }}
+              >
                 <span className={`dot ${tab.status === 'connected' ? 'on' : tab.status === 'connecting' ? 'wait' : ''}`} />
                 <span>{tab.title}</span>
-                <button type="button" className="tab-close" onClick={() => void closeTab(tab.localId)} aria-label="关闭会话">
+                <button
+                  type="button"
+                  className="tab-close"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void closeTab(tab.localId);
+                  }}
+                  aria-label="关闭会话"
+                >
                   ×
                 </button>
               </div>
             ))}
           </div>
-          <div className="terminal-stack">
-            {tabs.length === 0 ? <Welcome /> : null}
-            {tabs.map((tab) => (
+          <div
+            className={slots.length > 1 ? 'terminal-stack split' : 'terminal-stack'}
+            ref={stackRef}
+            style={slots.length > 1 ? splitGridStyle(slots.length, colRatio, rowRatio) : undefined}
+          >
+            {tabs.length === 0 ? (
+              <Welcome
+                portrait={portrait}
+                dataDir={paths?.dataDir ?? ''}
+                installedDefault={paths?.installedDefault ?? false}
+              />
+            ) : null}
+            <Suspense fallback={null}>
+            {tabs.map((tab) => {
+              const slot = slots.indexOf(tab.localId);
+              const visible = slots.length > 1 ? slot >= 0 : tab.localId === activeId;
+              return (
               <TerminalPane
                 key={tab.localId}
                 tab={tab}
                 active={tab.localId === activeId}
+                visible={visible}
+                gridArea={slots.length > 1 && slot >= 0 ? paneGridArea(slot, slots.length) : undefined}
+                onActivate={() => setActiveId(tab.localId)}
                 fontSize={settings.fontSize}
                 onFontStep={stepFont}
                 onRetry={() => {
@@ -425,7 +499,23 @@ function Shell() {
                 onDismiss={() => void closeTab(tab.localId)}
                 onDims={(cols, rows) => setDims({ cols, rows })}
               />
-            ))}
+              );
+            })}
+            </Suspense>
+            {slots.length > 1 ? (
+              <div
+                className="split-bar col"
+                style={{ left: `${colRatio * 100}%` }}
+                onPointerDown={(event) => dragSplit(event, 'x', stackRef.current, setColRatio)}
+              />
+            ) : null}
+            {slots.length > 2 ? (
+              <div
+                className="split-bar row"
+                style={{ top: `${rowRatio * 100}%`, left: slots.length === 3 ? `${colRatio * 100}%` : 0 }}
+                onPointerDown={(event) => dragSplit(event, 'y', stackRef.current, setRowRatio)}
+              />
+            ) : null}
             <Pet
               settings={settings}
               signal={
@@ -437,9 +527,11 @@ function Shell() {
                       ? 'connected'
                       : 'idle'
               }
+              pet={pets.find((item) => item.id === settings.activePetId) ?? null}
               onPlace={(petX, petY) => void patchSettings({ petX, petY })}
             />
           </div>
+          <Suspense fallback={null}>
           {sftpConnection ? (
             <SftpPanel
               key={sftpConnection.id}
@@ -451,6 +543,7 @@ function Shell() {
               }}
             />
           ) : null}
+          </Suspense>
           <footer className="statusbar">
             <span>{activeConnection ? `${activeConnection.username}@${activeConnection.host}:${activeConnection.port}` : '未连接'}</span>
             <span>{active ? statusText(active) : '就绪'}</span>
@@ -467,7 +560,7 @@ function Shell() {
                 重新连接
               </button>
             ) : null}
-            <span>{dims.cols}×{dims.rows}</span>
+            <span>{dims.cols}×{dims.rows}{slots.length > 1 && active ? ` · 当前格 ${active.title}` : ''}</span>
           </footer>
         </main>
       </div>
@@ -476,6 +569,7 @@ function Shell() {
           <div key={item.id} className="toast">{item.text}</div>
         ))}
       </div>
+      <Suspense fallback={null}>
       {connectionEdit ? (
         <ConnectionModal
           folders={folders}
@@ -507,8 +601,35 @@ function Shell() {
         />
       ) : null}
       {settingsOpen ? (
-        <SettingsModal settings={settings} paths={paths} onChange={(patch) => void patchSettings(patch)} onClose={() => setSettingsOpen(false)} />
+        <SettingsModal
+          settings={settings}
+          paths={paths}
+          pets={pets}
+          onChange={(patch) => void patchSettings(patch)}
+          onInstallSlug={async (slug) => {
+            const result = await window.moeterm.installPetSlug(slug);
+            if (!result.ok) return result.message;
+            setPets(result.data.pets);
+            await patchSettings({ activePetId: result.data.pet.id });
+            toast(`已装上 ${result.data.pet.name}`);
+            return null;
+          }}
+          onLogDir={(logDir) => setPaths((current) => (current ? { ...current, logDir } : current))}
+          onImportFile={async () => {
+            const result = await window.moeterm.installPetFile();
+            if (!result.ok) {
+              toast(result.message);
+              return;
+            }
+            if (!result.data) return;
+            setPets(result.data.pets);
+            await patchSettings({ activePetId: result.data.pet.id });
+            toast(`已装上 ${result.data.pet.name}`);
+          }}
+          onClose={() => setSettingsOpen(false)}
+        />
       ) : null}
+      </Suspense>
       {confirm ? (
         <div className="modal-back" onMouseDown={() => setConfirm(null)}>
           <div className="modal confirm" onMouseDown={(event) => event.stopPropagation()}>
@@ -558,6 +679,33 @@ function Shell() {
       ) : null}
     </div>
   );
+}
+
+function splitGridStyle(count: number, col: number, row: number): { gridTemplateColumns: string; gridTemplateRows: string } {
+  if (count <= 1) return { gridTemplateColumns: '1fr', gridTemplateRows: '1fr' };
+  if (count === 2) return { gridTemplateColumns: `${col}fr ${1 - col}fr`, gridTemplateRows: '1fr' };
+  return { gridTemplateColumns: `${col}fr ${1 - col}fr`, gridTemplateRows: `${row}fr ${1 - row}fr` };
+}
+
+function dragSplit(
+  event: ReactPointerEvent<HTMLDivElement>,
+  axis: 'x' | 'y',
+  stack: HTMLDivElement | null,
+  setRatio: (value: number) => void,
+): void {
+  if (!stack) return;
+  event.preventDefault();
+  const bounds = stack.getBoundingClientRect();
+  const move = (ev: PointerEvent) => {
+    const raw = axis === 'x' ? (ev.clientX - bounds.left) / bounds.width : (ev.clientY - bounds.top) / bounds.height;
+    setRatio(Math.min(0.78, Math.max(0.22, raw)));
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
 }
 
 function statusText(tab: TabModel): string {

@@ -54,6 +54,10 @@ export class SessionManager {
     this.defaultLogging = enabled;
   }
 
+  setLogDirectory(dir: string): void {
+    for (const live of this.sessions.values()) live.logger.setDirectory(dir);
+  }
+
   setSessionLog(sessionId: string, enabled: boolean): { file: string | null } {
     const live = this.sessions.get(sessionId);
     if (!live) throw new Error('找不到这个终端');
@@ -82,7 +86,7 @@ export class SessionManager {
       buffer: [],
       buffered: 0,
       attached: false,
-      logger: new SessionLogger(this.store.root, auth.connection.name),
+      logger: new SessionLogger(this.store.logDir, auth.connection.name),
       logging: request.logging ?? this.defaultLogging,
       inputQueue: [],
       cols: request.cols,

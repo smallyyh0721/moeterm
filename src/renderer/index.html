@@ -3,10 +3,80 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MoeTerm</title>
+    <title>kittyTerm</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #12110f; }
+      #boot {
+        position: fixed; inset: 0; z-index: 80;
+        display: grid; place-items: center;
+        background: #12110f; color: #f6f1ea;
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+        transition: opacity 0.28s ease;
+      }
+      #boot.boot-hide { opacity: 0; pointer-events: none; }
+      .boot-card { width: min(420px, calc(100% - 48px)); }
+      .boot-name { margin: 0 0 18px; text-align: center; letter-spacing: 0.14em; font-size: 22px; font-weight: 700; }
+      .boot-track {
+        position: relative; height: 10px; margin: 0 22px;
+        background: #2a2622; border-radius: 999px;
+      }
+      .boot-fill {
+        height: 100%; width: 0; border-radius: inherit;
+        background: linear-gradient(90deg, #f0c36a, #fff4e4);
+      }
+      .boot-cat {
+        position: absolute; top: 50%; left: 0;
+        width: 42px; height: 42px; margin: 0;
+        border-radius: 10px; object-fit: cover;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+      }
+      .boot-pct { margin: 22px 0 0; text-align: center; font-size: 13px; letter-spacing: 0.08em; color: #f0c36a; }
+    </style>
   </head>
   <body>
+    <div id="boot">
+      <div class="boot-card">
+        <p class="boot-name">kittyTerm</p>
+        <div class="boot-track">
+          <div class="boot-fill" id="boot-fill"></div>
+          <img class="boot-cat" id="boot-cat" src="./mark.png" alt="" />
+        </div>
+        <p class="boot-pct" id="boot-pct">0%</p>
+      </div>
+    </div>
     <div id="root"></div>
+    <script>
+      (function () {
+        var fill = document.getElementById('boot-fill');
+        var cat = document.getElementById('boot-cat');
+        var pct = document.getElementById('boot-pct');
+        var boot = document.getElementById('boot');
+        var start = performance.now();
+        var done = false;
+        function render(value) {
+          var shown = Math.max(0, Math.min(100, Math.round(value)));
+          fill.style.width = shown + '%';
+          cat.style.left = shown + '%';
+          pct.textContent = shown + '%';
+        }
+        function frame(now) {
+          if (done) return;
+          var t = Math.min(1, (now - start) / 2400);
+          var eased = 1 - Math.pow(1 - t, 3);
+          render(eased * 92);
+          if (t < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+        window.__kittyBootDone = function () {
+          if (done) return;
+          done = true;
+          render(100);
+          boot.classList.add('boot-hide');
+          setTimeout(function () { boot.remove(); }, 300);
+        };
+      })();
+    </script>
     <script type="module" src="./main.tsx"></script>
   </body>
 </html>

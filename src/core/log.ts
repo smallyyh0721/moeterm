@@ -10,18 +10,26 @@ export class SessionLogger {
   file: string | null = null;
 
   constructor(
-    private readonly root: string,
+    private root: string,
     private readonly sessionName: string,
   ) {}
 
+  setDirectory(dir: string): void {
+    if (path.resolve(this.root) === path.resolve(dir)) return;
+    const resume = this.stream !== null;
+    this.stop();
+    this.root = dir;
+    if (resume) this.start();
+  }
+
   start(): string {
     if (this.stream && this.file) return this.file;
-    const folder = path.join(this.root, 'logs', sanitizeFileName(this.sessionName));
+    const folder = path.join(this.root, sanitizeFileName(this.sessionName));
     fs.mkdirSync(folder, { recursive: true });
     this.file = path.join(folder, `${fileStamp()}.log`);
     this.stream = fs.createWriteStream(this.file, { flags: 'a' });
     this.stream.write(
-      `\uFEFF===== MoeTerm 日志 =====\r\n会话：${this.sessionName}\r\n开始：${new Date().toISOString()}\r\n=======================\r\n`,
+      `\uFEFF===== kittyTerm 日志 =====\r\n会话：${this.sessionName}\r\n开始：${new Date().toISOString()}\r\n========================\r\n`,
     );
     return this.file;
   }

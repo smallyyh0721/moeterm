@@ -38,6 +38,15 @@ export interface PublicFolder {
 
 export type PublicNode = PublicFolder | PublicConnection;
 
+export interface InstalledPet {
+  id: string;
+  name: string;
+  rows: 9 | 11;
+  frameWidth: number;
+  frameHeight: number;
+  sheet: 'spritesheet.webp' | 'spritesheet.png';
+}
+
 export interface Settings {
   version: 1;
   petEnabled: boolean;
@@ -45,7 +54,10 @@ export interface Settings {
   petY: number | null;
   fontSize: number;
   logEnabled: boolean;
+  logDir: string | null;
   sidebarWidth: number;
+  activePetId: string;
+  theme: string;
 }
 
 export interface RemoteEntry {
@@ -112,5 +124,8 @@ export const defaultSettings = (): Settings => ({
   petY: null,
   fontSize: 15,
   logEnabled: false,
+  logDir: null,
   sidebarWidth: 280,
+  activePetId: 'builtin',
+  theme: 'classic',
 });

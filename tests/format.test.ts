@@ -4,6 +4,7 @@ import { formatMode, formatSize, formatSpeed, sanitizeFileName } from '../src/sh
 import { normalizeRemote, remoteJoin, remoteParent } from '../src/shared/remote-path';
 import { assertOpenSshKey, privateKeyNeedsPassphrase } from '../src/core/keys';
 import { SessionLogger } from '../src/core/log';
+import { failureKeyAction } from '../src/shared/terminal-keys';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -49,10 +50,19 @@ describe('文本和路径', () => {
     expect(logger.stop()).toBe(file);
     await new Promise((resolve) => setTimeout(resolve, 30));
     const text = fs.readFileSync(file, 'utf8');
-    expect(text.startsWith('\uFEFF===== MoeTerm')).toBe(true);
+    expect(text.startsWith('\uFEFF===== kittyTerm')).toBe(true);
     expect(text).toContain('hello');
     expect(text).not.toContain('\u001b');
     expect(text).toContain('结束');
+  });
+
+  it('连接失败后 Enter 关闭，R 重试', () => {
+    expect(failureKeyAction('error', 'Enter', false)).toBe('close');
+    expect(failureKeyAction('error', 'r', false)).toBe('retry');
+    expect(failureKeyAction('error', 'R', false)).toBe('retry');
+    expect(failureKeyAction('closed', 'Enter', false)).toBe('close');
+    expect(failureKeyAction('error', 'Enter', true)).toBeNull();
+    expect(failureKeyAction('connected', 'r', false)).toBeNull();
   });
 });
 

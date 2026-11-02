@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>界面预览</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c100e;
+        --elev: #141c16;
+        --inset: #070a08;
+        --side: #101712;
+        --title-a: #243328;
+        --title-b: #18241c;
+        --accent: #b6ffbf;
+        --accent-dim: #6fbf7a;
+        --amber: #e4c07a;
+        --text: #d7e8d4;
+        --muted: #8aa58d;
+        --line: #2a4032;
+        --bevel-light: #8faf96;
+        --bevel-dark: #070b08;
+        --ok: #7dff9a;
+        --card: #101910;
+        --bubble: #f4ffe8;
+        --bubble-ink: #1a2418;
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+        font-size: 13px;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+      button { font: inherit; color: inherit; cursor: default; }
+      .app { height: 100%; display: flex; flex-direction: column; }
+      .titlebar {
+        height: 42px; display: flex; align-items: center; gap: 12px;
+        padding: 0 8px 0 10px;
+        background: linear-gradient(var(--title-a), var(--title-b));
+        border-bottom: 1px solid #07110c;
+        box-shadow: inset 0 1px 0 var(--bevel-light);
+        user-select: none;
+      }
+      .brand { display: flex; align-items: center; gap: 8px; min-width: 220px; }
+      .brand-mark { width: 28px; height: 28px; object-fit: cover; border: 1px solid var(--bevel-light); background: #111; }
+      .brand-name { color: var(--accent); letter-spacing: 0.08em; font-weight: 700; font-size: 14px; }
+      .brand-sub { color: var(--muted); }
+      .title-actions, .win-actions { display: flex; gap: 6px; align-items: center; }
+      .win-actions { margin-left: auto; }
+      .btn, .win-btn {
+        background: linear-gradient(#2a3d2e, #1a2820);
+        border-top: 1px solid var(--bevel-light);
+        border-left: 1px solid #6d8f74;
+        border-right: 1px solid var(--bevel-dark);
+        border-bottom: 1px solid var(--bevel-dark);
+        box-shadow: inset 0 0 0 1px #1c2c22;
+        padding: 3px 10px; color: var(--text);
+      }
+      .btn.on { background: #101810; color: var(--accent); }
+      .win-btn { width: 34px; height: 26px; padding: 0; }
+      .win-close { color: #ffd0cc; }
+      .body { flex: 1; min-height: 0; display: flex; }
+      .sidebar {
+        width: 250px; display: flex; flex-direction: column;
+        background: var(--side); border-right: 1px solid #07110c;
+      }
+      .side-head { padding: 8px 10px 4px; color: var(--amber); letter-spacing: 0.16em; font-size: 12px; }
+      .side-actions { display: flex; gap: 6px; padding: 4px 8px 8px; border-bottom: 1px solid var(--line); }
+      .side-actions .btn { flex: 1; }
+      .side-filter {
+        margin: 8px; background: var(--inset); color: var(--muted);
+        border: 1px solid #1e3326; box-shadow: inset 1px 1px 0 #000; padding: 6px 8px;
+      }
+      .node { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 8px; }
+      .node.folder { color: var(--text); }
+      .node.child { padding-left: 28px; }
+      .twist, .open-all { border: 0; background: transparent; color: var(--accent-dim); padding: 0; }
+      .open-all { margin-left: auto; font-size: 11px; letter-spacing: 0.08em; }
+      .node-meta { color: var(--muted); font-size: 11px; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: #3d5142; box-shadow: inset 0 0 0 1px #0c140f; }
+      .stage { flex: 1; min-width: 0; position: relative; background: #050806; }
+      .welcome {
+        height: 100%; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+        gap: 28px; align-items: center; padding: 28px 36px 48px;
+      }
+      .ascii, .wordmark { margin: 0; color: var(--accent); }
+      .ascii {
+        font-family: Consolas, "Cascadia Mono", monospace;
+        font-size: 12px; line-height: 1.15;
+        text-shadow: 0 0 8px rgba(120, 255, 160, 0.35);
+      }
+      .lockup { display: flex; align-items: center; gap: 16px; }
+      .lockup-icon { width: 84px; height: 84px; object-fit: cover; border: 1px solid var(--line); background: #111; }
+      .wordmark {
+        font-family: Consolas, "Cascadia Mono", monospace;
+        font-size: 52px; letter-spacing: 0.03em; font-weight: 700;
+      }
+      .tag { margin: 10px 0 0; color: var(--text); font-size: 16px; }
+      .minor { margin: 18px 0 0; padding: 0; list-style: none; color: var(--muted); line-height: 1.7; }
+      .minor li::before { content: "· "; color: var(--accent-dim); }
+      .hint { margin: 16px 0 0; color: var(--amber); }
+      .pet-card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: inset 3px 0 0 var(--accent);
+        padding: 16px 18px 14px;
+      }
+      .kicker { margin: 0; color: var(--accent); letter-spacing: 0.18em; font-size: 11px; }
+      .pet-card h2 { margin: 6px 0 8px; font-size: 22px; font-weight: 700; letter-spacing: 0.06em; }
+      .lead { margin: 0 0 10px; line-height: 1.55; }
+      .steps { margin: 0; padding-left: 18px; line-height: 1.65; }
+      .steps strong { color: var(--accent); font-weight: 600; }
+      .statusbar {
+        height: 28px; display: flex; align-items: center; gap: 14px; padding: 0 10px;
+        background: var(--title-b); border-top: 1px solid #314a38; color: var(--muted);
+      }
+      .statusbar .spacer { flex: 1; }
+      .pet { position: absolute; right: 18px; bottom: 8px; width: 112px; }
+      .pet img { width: 112px; height: 124px; object-fit: contain; object-position: bottom center; filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.45)); }
+      .pet-bubble {
+        position: absolute; right: 0; bottom: calc(100% - 8px);
+        width: max-content; max-width: 220px;
+        background: var(--bubble); color: var(--bubble-ink);
+        border: 2px solid #203028; padding: 6px 8px; font-size: 12px; line-height: 1.4;
+      }
+      .only-zzz, .only-fff, .only-now { display: none; }
+      .skin-zzz .only-zzz, .skin-fff .only-fff, .skin-now .only-now { display: block; }
+      .skin-zzz .lockup.only-zzz, .skin-fff .lockup.only-fff, .skin-now .lockup.only-now { display: flex; }
+      .skin-zzz span.only-zzz, .skin-fff span.only-fff, .skin-now span.only-now { display: inline; }
+
+      .skin-zzz {
+        --bg: #101114; --elev: #1b1c22; --inset: #0b0c10; --side: #16171c;
+        --title-a: #2a211c; --title-b: #16141a; --accent: #ff8a2a; --accent-dim: #ffb067;
+        --amber: #ffb067; --text: #f6f1ea; --muted: #b3a89d; --line: #3a332c;
+        --bevel-light: #ffb067; --bevel-dark: #100e0c; --card: #1a1714;
+        --bubble: #fff4e8; --bubble-ink: #2a2118;
+      }
+      .skin-zzz .app { background: radial-gradient(900px 420px at 100% -10%, rgba(255, 122, 24, 0.16), transparent 46%), var(--bg); }
+      .skin-zzz .stage { background: #0c0d11; }
+      .skin-zzz .btn, .skin-zzz .win-btn {
+        background: #221c18; border: 1px solid #4a3b30; border-bottom: 2px solid #ff7a18;
+        box-shadow: none; color: #f6f1ea;
+      }
+      .skin-zzz .btn.on { background: #ff7a18; color: #1a1008; border-color: #ff7a18; }
+      .skin-zzz .wordmark { color: #fff7ef; }
+      .skin-zzz .mark { color: #ff7a18; }
+      .skin-zzz .side-filter { border-color: #3a3028; }
+      .skin-zzz .pet-card { box-shadow: inset 3px 0 0 #ff7a18; }
+
+      .skin-fff {
+        --bg: #14110f; --elev: #241c16; --inset: #0d0b09; --side: #1c1612;
+        --title-a: #3a2c22; --title-b: #241910; --accent: #f0c36a; --accent-dim: #d7a85a;
+        --amber: #f0c36a; --text: #f7f0e6; --muted: #c2b09a; --line: #4a3b2e;
+        --bevel-light: #e7c98a; --bevel-dark: #120e0b; --card: #241910;
+        --bubble: #fff8e8; --bubble-ink: #2a2118;
+      }
+      .skin-fff .app { background: radial-gradient(800px 380px at 0% -10%, rgba(240, 195, 106, 0.14), transparent 50%), var(--bg); }
+      .skin-fff .stage { background: #100e0c; }
+      .skin-fff .btn, .skin-fff .win-btn {
+        background: #3a2e24; border: 1px solid #6a5340; border-radius: 8px;
+        box-shadow: none; color: #f7f0e6;
+      }
+      .skin-fff .btn.on { background: #f0c36a; color: #2a2118; border-color: #f0c36a; }
+      .skin-fff .brand-mark, .skin-fff .side-filter, .skin-fff .pet-card, .skin-fff .lockup-icon { border-radius: 12px; }
+      .skin-fff .wordmark { color: #fff8ee; }
+      .skin-fff .mark { color: #f0c36a; }
+      .skin-now .wordmark { color: var(--accent); text-shadow: 0 0 8px rgba(120, 255, 160, 0.35); }
+      .skin-now .mark { color: var(--accent); }
+      .skin-now .lockup-icon { border-radius: 2px; }
+      .skin-fff .side-filter { border-color: #4a3b2e; }
+    </style>
+  </head>
+  <body class="skin-now">
+    <div class="app">
+      <header class="titlebar">
+        <div class="brand">
+          <img class="brand-mark" src="assets/cat.jpg" alt="" />
+          <span class="brand-name">kittyTerm</span>
+          <span class="brand-sub">classical shell</span>
+        </div>
+        <div class="title-actions">
+          <button class="btn" type="button">日志 关</button>
+          <button class="btn on" type="button">宠物</button>
+          <button class="btn" type="button">SFTP</button>
+          <button class="btn" type="button">设置</button>
+        </div>
+        <div class="win-actions">
+          <button class="win-btn" type="button">–</button>
+          <button class="win-btn" type="button">□</button>
+          <button class="win-btn" type="button">×</button>
+        </div>
+      </header>
+      <div class="body">
+        <aside class="sidebar">
+          <div class="side-head">连接</div>
+          <div class="side-actions">
+            <button class="btn" type="button">新建目录</button>
+            <button class="btn" type="button">新建连接</button>
+          </div>
+          <div class="side-filter">筛选名称或主机</div>
+          <div class="node folder"><button class="twist" type="button">▾</button><span>存储服务器</span><button class="open-all" type="button">全部</button></div>
+          <div class="node child"><span class="dot"></span><span>nas-01</span><span class="node-meta">root@10.0.0.11</span></div>
+          <div class="node child"><span class="dot"></span><span>nas-02</span><span class="node-meta">backup@10.0.0.12</span></div>
+          <div class="node folder"><button class="twist" type="button">▾</button><span>计算节点</span><button class="open-all" type="button">全部</button></div>
+        </aside>
+        <main class="stage">
+          <section class="welcome">
+            <div>
+              <div class="lockup only-zzz">
+                <img class="lockup-icon" src="assets/lady.jpg" alt="" />
+                <h1 class="wordmark"><span class="mark">kitty</span>Term</h1>
+              </div>
+              <div class="lockup only-fff">
+                <img class="lockup-icon" src="assets/dog.jpg" alt="" />
+                <h1 class="wordmark"><span class="mark">kitty</span>Term</h1>
+              </div>
+              <div class="lockup only-now">
+                <img class="lockup-icon" src="assets/cat.jpg" alt="" />
+                <h1 class="wordmark"><span class="mark">kitty</span>Term</h1>
+              </div>
+              <p class="tag">古典linux风自由终端</p>
+              <ul class="minor">
+                <li>左侧按目录整理连接，目录上的「全部」会一次打开里面的会话。</li>
+                <li>右键终端可以复制、粘贴，或把选中内容和整个缓冲区导出成 txt。</li>
+                <li>标题栏的「日志」只记录当前这个终端。私钥、密码和日志在同一个数据目录。</li>
+              </ul>
+              <p class="hint">F11 全屏 · Ctrl+Shift+C 复制 · Ctrl+Shift+V 粘贴</p>
+            </div>
+            <article class="pet-card">
+              <p class="kicker">亮点</p>
+              <h2>桌面宠物</h2>
+              <p class="lead">右下角那只会一直动。它不挡打字，想理它的时候再看它。</p>
+              <ol class="steps">
+                <li>标题栏的「宠物」可以显示或关掉。</li>
+                <li>鼠标放上去，会弹出程序员梗。</li>
+                <li>点一下换一个姿势，按住可以拖到别处。</li>
+                <li>正在连接时它会跑，连上会欢呼，失败会垂头。</li>
+                <li>想换一只：打开「设置」，输入 Petdex 名称，例如 boba，或导入本地宠物包。</li>
+              </ol>
+            </article>
+          </section>
+          <div class="pet">
+            <div class="pet-bubble">CV 工程师：Ctrl+C，Ctrl+V。</div>
+            <img src="assets/pet.png" alt="" />
+          </div>
+        </main>
+      </div>
+      <footer class="statusbar">
+        <span>未连接</span><span>就绪</span><span>当前日志 关</span><span>UTF-8</span>
+        <span class="spacer"></span><span>80×24</span>
+      </footer>
+    </div>
+  </body>
+</html>

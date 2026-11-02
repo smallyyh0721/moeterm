@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>分屏预览</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0c100e;
+        --elev: #141c16;
+        --inset: #070a08;
+        --side: #101712;
+        --title-a: #243328;
+        --title-b: #18241c;
+        --accent: #b6ffbf;
+        --accent-dim: #6fbf7a;
+        --amber: #e4c07a;
+        --text: #d7e8d4;
+        --muted: #8aa58d;
+        --line: #2a4032;
+        --ok: #7dff9a;
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+        font-size: 13px;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+      button { font: inherit; color: inherit; cursor: default; }
+      .app { height: 100%; display: flex; flex-direction: column; }
+      .titlebar {
+        height: 42px; display: flex; align-items: center; gap: 12px;
+        padding: 0 8px 0 10px;
+        background: linear-gradient(var(--title-a), var(--title-b));
+        border-bottom: 1px solid #07110c;
+        box-shadow: inset 0 1px 0 #8faf96;
+      }
+      .brand { display: flex; align-items: center; gap: 8px; min-width: 210px; }
+      .brand img { width: 22px; height: 22px; object-fit: cover; border: 1px solid #8faf96; }
+      .brand b { color: var(--accent); letter-spacing: 0.08em; }
+      .brand span { color: var(--muted); }
+      .title-actions, .win-actions { display: flex; gap: 6px; }
+      .win-actions { margin-left: auto; }
+      .btn, .win-btn {
+        background: linear-gradient(#2a3d2e, #1a2820);
+        border: 1px solid #1c2c22;
+        border-top-color: #8faf96;
+        border-left-color: #8faf96;
+        padding: 3px 10px;
+      }
+      .btn.on { background: #101810; color: var(--accent); }
+      .win-btn { width: 34px; height: 26px; padding: 0; }
+      .body { flex: 1; min-height: 0; display: flex; }
+      .sidebar { width: 232px; background: var(--side); border-right: 1px solid #07110c; }
+      .side-head { padding: 8px 10px 4px; color: var(--amber); letter-spacing: 0.16em; font-size: 12px; }
+      .side-actions { display: flex; gap: 6px; padding: 4px 8px 8px; border-bottom: 1px solid var(--line); }
+      .side-actions .btn { flex: 1; }
+      .filter { margin: 8px; padding: 6px 8px; color: var(--muted); background: var(--inset); border: 1px solid #1e3326; }
+      .node { display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 8px; }
+      .node.child { padding-left: 26px; }
+      .node.selected { background: #1c3324; box-shadow: inset 2px 0 0 var(--accent); }
+      .open-all { margin-left: auto; border: 0; background: transparent; color: var(--accent-dim); font-size: 11px; }
+      .meta { color: var(--muted); font-size: 11px; }
+      .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+      .stage { flex: 1; min-width: 0; display: flex; flex-direction: column; background: #050806; }
+      .tabbar { display: flex; gap: 4px; padding: 6px 8px 0; background: var(--side); }
+      .tab {
+        display: flex; align-items: center; gap: 6px;
+        padding: 4px 8px; background: var(--elev); border: 1px solid var(--line); border-bottom: 0;
+      }
+      .tab.on { background: #050806; color: var(--accent); border-color: var(--accent-dim); }
+      .panes { flex: 1; min-height: 0; display: grid; gap: 4px; padding: 4px; background: #07110c; }
+      .skin-2 .panes { grid-template-columns: 1.15fr 1fr; }
+      .skin-3 .panes { grid-template-columns: 1.2fr 0.8fr; grid-template-rows: 1fr 1fr; }
+      .skin-3 .pane.a { grid-row: 1 / span 2; }
+      .skin-4 .panes { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+      .pane {
+        min-width: 0; min-height: 0; position: relative;
+        background: #050806; padding: 10px 12px;
+        font-family: Consolas, "Cascadia Mono", monospace; font-size: 13px; line-height: 1.45;
+        color: #c8f5c4;
+      }
+      .pane.focus { box-shadow: inset 0 0 0 2px var(--accent); }
+      .pane .who { color: var(--amber); }
+      .prompt { color: var(--accent); }
+      .dim { color: var(--muted); }
+      .status {
+        height: 28px; display: flex; align-items: center; gap: 14px;
+        padding: 0 10px; background: var(--title-b); border-top: 1px solid var(--line); color: var(--muted);
+      }
+      .status .spacer { flex: 1; }
+      .layout {
+        display: flex; gap: 4px; padding: 2px; background: #101810; border: 1px solid var(--line);
+      }
+      .layout i {
+        width: 16px; height: 12px; display: grid; gap: 1px; padding: 1px;
+        border: 1px solid transparent;
+      }
+      .layout i.on { border-color: var(--accent); }
+      .layout b { display: block; background: var(--accent-dim); }
+      .l2 { grid-template-columns: 1fr 1fr; }
+      .l3 { grid-template-columns: 1.2fr 0.8fr; grid-template-rows: 1fr 1fr; }
+      .l3 b:first-child { grid-row: 1 / span 2; }
+      .l4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+      .only-3, .only-4 { display: none; }
+      .skin-3 .only-3, .skin-4 .only-4 { display: flex; }
+      .skin-3 .pane.d, .skin-2 .pane.c, .skin-2 .pane.d { display: none; }
+    </style>
+  </head>
+  <body class="skin-2">
+    <div class="app">
+      <header class="titlebar">
+        <div class="brand">
+          <img src="../../build/mark.png" alt="" />
+          <b>kittyTerm</b>
+          <span>root@nas-01</span>
+        </div>
+        <div class="title-actions">
+          <button class="btn" type="button">日志 关</button>
+          <button class="btn" type="button">宠物</button>
+          <div class="layout" title="分屏">
+            <i class="l2"><b></b><b></b></i>
+            <i class="l3"><b></b><b></b><b></b></i>
+            <i class="l4"><b></b><b></b><b></b><b></b></i>
+          </div>
+          <button class="btn" type="button">SFTP</button>
+          <button class="btn" type="button">设置</button>
+        </div>
+        <div class="win-actions">
+          <button class="win-btn" type="button">–</button>
+          <button class="win-btn" type="button">□</button>
+          <button class="win-btn" type="button">×</button>
+        </div>
+      </header>
+      <div class="body">
+        <aside class="sidebar">
+          <div class="side-head">连接</div>
+          <div class="side-actions">
+            <button class="btn" type="button">新建目录</button>
+            <button class="btn" type="button">新建连接</button>
+          </div>
+          <div class="filter">筛选名称或主机</div>
+          <div class="node"><span>▾</span><span>存储服务器</span><button class="open-all" type="button">全部</button></div>
+          <div class="node child selected"><span class="dot"></span><span>nas-01</span><span class="meta">root@10.0.0.11</span></div>
+          <div class="node child"><span class="dot"></span><span>nas-02</span><span class="meta">backup@10.0.0.12</span></div>
+          <div class="node"><span>▾</span><span>计算节点</span><button class="open-all" type="button">全部</button></div>
+          <div class="node child"><span class="dot"></span><span>gpu-01</span><span class="meta">ops@10.0.0.21</span></div>
+          <div class="node child"><span class="dot"></span><span>gpu-02</span><span class="meta">ops@10.0.0.22</span></div>
+        </aside>
+        <main class="stage">
+          <div class="tabbar">
+            <div class="tab on"><span class="dot"></span>nas-01 ×</div>
+            <div class="tab"><span class="dot"></span>nas-02 ×</div>
+            <div class="tab only-3"><span class="dot"></span>gpu-01 ×</div>
+            <div class="tab only-4"><span class="dot"></span>gpu-01 ×</div>
+            <div class="tab only-4"><span class="dot"></span>gpu-02 ×</div>
+          </div>
+          <div class="panes">
+            <section class="pane a focus">
+              <div class="who">nas-01 · 当前格</div>
+              <div>Linux nas-01 6.8.0</div>
+              <div><span class="prompt">root@nas-01:~$</span> df -h /</div>
+              <div>/dev/sda1  200G  88G  112G  44%</div>
+            </section>
+            <section class="pane b">
+              <div class="who">nas-02</div>
+              <div><span class="prompt">backup@nas-02:~$</span> tail -n 2 /var/log/syslog</div>
+              <div class="dim">sshd[2214]: Accepted publickey</div>
+              <div class="dim">sshd[2214]: pam_unix(sshd:session): session opened</div>
+            </section>
+            <section class="pane c">
+              <div class="who">gpu-01</div>
+              <div><span class="prompt">ops@gpu-01:~$</span> nvidia-smi -L</div>
+              <div>GPU 0: A100</div>
+            </section>
+            <section class="pane d">
+              <div class="who">gpu-02</div>
+              <div><span class="prompt">ops@gpu-02:~$</span> uptime</div>
+              <div>up 14 days, load average: 0.42</div>
+            </section>
+          </div>
+          <footer class="status">
+            <span>root@10.0.0.11:22</span>
+            <span>已连接</span>
+            <span>当前日志 关</span>
+            <span>UTF-8</span>
+            <span class="spacer"></span>
+            <span>80×24 · 当前格 nas-01</span>
+          </footer>
+        </main>
+      </div>
+    </div>
+    <script>
+      const skin = document.body.className;
+      const icons = { 'skin-2': '.l2', 'skin-3': '.l3', 'skin-4': '.l4' };
+      document.querySelector(icons[skin])?.classList.add('on');
+    </script>
+  </body>
+</html>

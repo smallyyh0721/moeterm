@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu } from 'electron';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { copyData, hasSavedData, readDataDirChoice, samePath } from '../core/data-dir';
 import { DataStore } from '../core/store';
 import { CH } from '../shared/channels';
 import { systemCipher } from './cipher';
@@ -13,7 +14,7 @@ const screenshot = process.argv.includes('--screenshot');
 let quitting = false;
 let mainWindow: BrowserWindow | null = null;
 
-app.setAppUserModelId('dev.moeterm.app');
+app.setAppUserModelId('dev.kittyterm.app');
 Menu.setApplicationMenu(null);
 
 const gotLock = smoke || app.requestSingleInstanceLock();
@@ -38,7 +39,11 @@ async function createWindow(): Promise<void> {
   if (smoke) {
     process.env.MOETERM_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'moeterm-'));
   }
-  const dataDir = process.env.MOETERM_DATA_DIR || path.join(app.getPath('appData'), 'MoeTerm');
+  const installedDefault = app.isPackaged;
+  const defaultDir = installedDefault
+    ? path.join(path.dirname(process.execPath), 'data')
+    : path.join(app.getPath('appData'), 'kittyTerm');
+  const dataDir = process.env.MOETERM_DATA_DIR || resolveDataDir(defaultDir);
   const store = new DataStore(dataDir, systemCipher());
   if (screenshot) seedDemo(store);
 
@@ -48,9 +53,9 @@ async function createWindow(): Promise<void> {
     minWidth: 960,
     minHeight: 640,
     backgroundColor: '#0c100e',
-    show: false,
+    show: true,
     frame: false,
-    title: 'MoeTerm',
+    title: 'kittyTerm',
     icon: iconPath(),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
@@ -68,6 +73,9 @@ async function createWindow(): Promise<void> {
     store,
     sessions,
     version: app.getVersion(),
+    defaultDir,
+    installedDefault,
+    dataDirPointer: path.join(app.getPath('appData'), 'kittyTerm', 'location.json'),
     requestQuit() {
       quitting = true;
       sessions.closeAll();
@@ -85,8 +93,6 @@ async function createWindow(): Promise<void> {
     }
     sessions.closeAll();
   });
-  win.once('ready-to-show', () => win.show());
-
   const devServer = process.env.MOETERM_DEV_SERVER;
   if (devServer) await win.loadURL(devServer);
   else await win.loadFile(path.join(__dirname, '../renderer/index.html'));
@@ -113,7 +119,7 @@ async function createWindow(): Promise<void> {
     brand: document.querySelector('.brand-name')?.textContent ?? '',
     folders: document.querySelectorAll('.node.folder').length
   })`);
-  if (!String(info.brand).includes('MoeTerm')) {
+  if (!String(info.brand).includes('kittyTerm')) {
     console.error('SMOKE FAILED', JSON.stringify(info));
     app.exit(1);
     return;
@@ -131,6 +137,22 @@ async function createWindow(): Promise<void> {
     fs.writeFileSync(path.join(dir, 'screenshot.png'), image.toPNG());
   }
   app.exit(0);
+}
+
+function resolveDataDir(fallback: string): string {
+  const chosen = readDataDirChoice(path.join(app.getPath('appData'), 'kittyTerm', 'location.json'));
+  if (chosen) {
+    fs.mkdirSync(chosen, { recursive: true });
+    return chosen;
+  }
+  if (!hasSavedData(fallback)) {
+    const legacy = ['kittyTerm', 'CCPTerm', 'MoeTerm']
+      .map((name) => path.join(app.getPath('appData'), name))
+      .find((dir) => !samePath(dir, fallback) && hasSavedData(dir));
+    if (legacy) copyData(legacy, fallback);
+  }
+  fs.mkdirSync(fallback, { recursive: true });
+  return fallback;
 }
 
 function iconPath(): string {

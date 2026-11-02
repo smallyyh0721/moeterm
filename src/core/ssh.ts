@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { Client, type ClientChannel } from 'ssh2';
+import type { Client as SshClient, ClientChannel } from 'ssh2';
 import { legacyAlgorithms } from './algorithms';
 import { HostKeyChangedError } from './errors';
 
@@ -34,7 +34,13 @@ export function fingerprintOf(key: Buffer | string): string {
   return createHash('sha256').update(bytes).digest('base64');
 }
 
-export function openShell(options: ShellOptions): Promise<ShellHandle> {
+async function loadClient(): Promise<typeof import('ssh2').Client> {
+  const ssh = await import('ssh2');
+  return ssh.Client;
+}
+
+export async function openShell(options: ShellOptions): Promise<ShellHandle> {
+  const Client = await loadClient();
   return new Promise((resolve, reject) => {
     const client = new Client();
     let settled = false;
@@ -121,7 +127,7 @@ export function openShell(options: ShellOptions): Promise<ShellHandle> {
       fail(error instanceof Error ? error : new Error(String(error)));
     }
 
-    function createHandle(channel: ClientChannel, connection: Client): ShellHandle {
+    function createHandle(channel: ClientChannel, connection: SshClient): ShellHandle {
       return {
         write(data: string) {
           if (!closed) channel.write(data);
@@ -157,7 +163,8 @@ export interface SftpHandle {
   close(): void;
 }
 
-export function openSftp(options: EndpointOptions): Promise<SftpHandle> {
+export async function openSftp(options: EndpointOptions): Promise<SftpHandle> {
+  const Client = await loadClient();
   return new Promise((resolve, reject) => {
     const client = new Client();
     let settled = false;

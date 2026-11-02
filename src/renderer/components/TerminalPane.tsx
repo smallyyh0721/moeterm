@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
+import '@xterm/xterm/css/xterm.css';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal } from '@xterm/xterm';
 import { fileStamp } from '../../shared/format';
 import type { TabModel } from '../lib/prompt';
+import { failureKeyAction } from '../../shared/terminal-keys';
 import { TERM_FONT, TERM_THEME, bufferText } from '../lib/terminal';
 
 export function TerminalPane({
   tab,
   active,
+  visible,
+  gridArea,
+  onActivate,
   fontSize,
   onDims,
   onFontStep,
@@ -17,6 +22,9 @@ export function TerminalPane({
 }: {
   tab: TabModel;
   active: boolean;
+  visible: boolean;
+  gridArea?: { gridColumn: string; gridRow: string };
+  onActivate: () => void;
   fontSize: number;
   onDims: (cols: number, rows: number) => void;
   onFontStep: (delta: number) => void;
@@ -83,18 +91,16 @@ export function TerminalPane({
         void copySelection(term);
         return false;
       }
-      if (statusRef.current === 'closed' && event.key === 'Enter' && !event.ctrlKey && !event.altKey && !event.metaKey) {
+      const action = failureKeyAction(
+        statusRef.current,
+        event.key,
+        event.ctrlKey || event.altKey || event.metaKey,
+      );
+      if (action === 'close') {
         onDismissRef.current();
         return false;
       }
-      if (
-        statusRef.current === 'error' &&
-        messageRef.current === '连接超时' &&
-        key === 'r' &&
-        !event.ctrlKey &&
-        !event.altKey &&
-        !event.metaKey
-      ) {
+      if (action === 'retry') {
         onRetryRef.current();
         return false;
       }
@@ -124,11 +130,15 @@ export function TerminalPane({
     const term = termRef.current;
     if (!term) return;
     term.options.fontSize = fontSize;
-    if (active) fitRef.current?.fit();
-  }, [fontSize, active]);
+    if (visible) fitRef.current?.fit();
+  }, [fontSize, visible]);
 
   useEffect(() => {
-    if (!active) return;
+    if (active) termRef.current?.focus();
+  }, [active]);
+
+  useEffect(() => {
+    if (!visible) return;
     const host = hostRef.current;
     const fit = fitRef.current;
     if (!host || !fit) return;
@@ -136,7 +146,7 @@ export function TerminalPane({
       fit.fit();
       const dims = fit.proposeDimensions();
       if (!dims) return;
-      onDimsRef.current(dims.cols, dims.rows);
+      if (active) onDimsRef.current(dims.cols, dims.rows);
       const sessionId = sessionRef.current;
       if (sessionId) void window.moeterm.resize(sessionId, dims.cols, dims.rows);
     };
@@ -144,7 +154,7 @@ export function TerminalPane({
     const observer = new ResizeObserver(() => apply());
     observer.observe(host);
     return () => observer.disconnect();
-  }, [active, fontSize, tab.sessionId]);
+  }, [visible, active, fontSize, tab.sessionId]);
 
   useEffect(() => {
     const sessionId = tab.sessionId;
@@ -160,21 +170,29 @@ export function TerminalPane({
   useEffect(() => {
     const term = termRef.current;
     if (!term || !tab.message) return;
-    if (tab.status === 'error' && tab.message === '连接超时') {
-      term.write(`\r\n\x1b[31m连接超时\x1b[0m\r\n\x1b[33m按 R 重试\x1b[0m\r\n`);
+    if (tab.status === 'error' && tab.message) {
+      term.write(`\r\n\x1b[31m${tab.message}\x1b[0m\r\n\x1b[33m按 R 重试，按 Enter 关闭此终端\x1b[0m\r\n`);
+      if (active) term.focus();
     } else if (tab.status === 'closed') {
       term.write(`\r\n\x1b[31m${tab.message ?? '连接已断开'}\x1b[0m\r\n\x1b[33m按 Enter 关闭此终端\x1b[0m\r\n`);
-    } else if (tab.status === 'error' && tab.message) {
-      term.write(`\r\n\x1b[31m${tab.message}\x1b[0m\r\n`);
+      if (active) term.focus();
     }
-  }, [tab.status, tab.message]);
+  }, [tab.status, tab.message, active]);
 
   const term = termRef.current;
 
   return (
-    <div className={active ? 'pane active' : 'pane'}>
+    <div
+      className={visible ? (active ? 'pane active shown' : 'pane shown') : 'pane'}
+      style={visible ? gridArea : undefined}
+      onMouseDown={onActivate}
+    >
+      <div className="pane-head">
+        <span className={`dot ${tab.status === 'connected' ? 'on' : tab.status === 'connecting' ? 'wait' : ''}`} />
+        <span className="pane-title">{tab.title}</span>
+      </div>
       <div className="crt" ref={hostRef} />
-      {tab.status === 'error' && tab.message === '连接超时' ? (
+      {tab.status === 'error' && tab.message ? (
         <button type="button" className="term-retry" onClick={() => onRetry()}>
           重试
         </button>

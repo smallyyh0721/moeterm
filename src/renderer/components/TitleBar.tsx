@@ -1,10 +1,16 @@
+import type { ReactNode } from 'react';
+import iconUrl from '../../../build/mark.png';
+import type { SplitLayout } from '../lib/split';
+
 export function TitleBar({
   subtitle,
   logOn,
   petOn,
   sftpOn,
+  split,
   onLog,
   onPet,
+  onSplit,
   onSftp,
   onSettings,
 }: {
@@ -12,16 +18,18 @@ export function TitleBar({
   logOn: boolean;
   petOn: boolean;
   sftpOn: boolean;
+  split: SplitLayout;
   onLog: () => void;
   onPet: () => void;
+  onSplit: (layout: SplitLayout) => void;
   onSftp: () => void;
   onSettings: () => void;
 }) {
   return (
     <header className="titlebar">
       <div className="brand">
-        <span className="brand-mark" />
-        <span className="brand-name">MoeTerm</span>
+        <img className="brand-mark" src={iconUrl} alt="" />
+        <span className="brand-name">kittyTerm</span>
         <span className="brand-sub">{subtitle}</span>
       </div>
       <div className="title-actions">
@@ -31,6 +39,17 @@ export function TitleBar({
         <button type="button" className={petOn ? 'btn on' : 'btn'} onClick={onPet}>
           宠物
         </button>
+        <div className="split-switch" role="group" aria-label="分屏">
+          <SplitButton layout="columns" current={split} title="左右分屏" onSplit={onSplit}>
+            <i className="split-ico cols"><b /><b /></i>
+          </SplitButton>
+          <SplitButton layout="stack3" current={split} title="三格" onSplit={onSplit}>
+            <i className="split-ico stack"><b /><b /><b /></i>
+          </SplitButton>
+          <SplitButton layout="grid4" current={split} title="四格" onSplit={onSplit}>
+            <i className="split-ico grid"><b /><b /><b /><b /></i>
+          </SplitButton>
+        </div>
         <button type="button" className={sftpOn ? 'btn on' : 'btn'} onClick={onSftp}>
           SFTP
         </button>
@@ -50,5 +69,31 @@ export function TitleBar({
         </button>
       </div>
     </header>
+  );
+}
+
+function SplitButton({
+  layout,
+  current,
+  title,
+  onSplit,
+  children,
+}: {
+  layout: Exclude<SplitLayout, 'single'>;
+  current: SplitLayout;
+  title: string;
+  onSplit: (layout: SplitLayout) => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className={current === layout ? 'on' : ''}
+      title={current === layout ? `${title}，再点一次回到单屏` : title}
+      aria-pressed={current === layout}
+      onClick={() => onSplit(current === layout ? 'single' : layout)}
+    >
+      {children}
+    </button>
   );
 }
