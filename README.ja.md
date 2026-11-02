@@ -33,7 +33,7 @@ kittyTerm がやるのは端末の仕事だけです。接続の保存、シェ�
 
 ## インストール
 
-インストーラーは `kittyTerm Setup 2.0.0.exe` です。Windows 10 / 11 x64 向けで、今のユーザーに入り、管理者は要りません。署名証明書がないため、SmartScreen が不明な発行元と出すことがあります。そのまま実行を選んでください。
+インストーラーは [kittyTerm.Setup.2.0.0.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.0/kittyTerm.Setup.2.0.0.exe) です。Windows 10 / 11 x64 向けで、今のユーザーに入り、管理者は要りません。署名証明書がないため、SmartScreen が不明な発行元と出すことがあります。そのまま実行を選んでください。
 
 入れたあと、データはインストール先の `data` フォルダーにあります。開発中はインストール先がないので、`%APPDATA%\kittyTerm` にあります。
 

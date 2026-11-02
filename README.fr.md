@@ -33,7 +33,7 @@ kittyTerm reste sur le travail d'un terminal : connexions enregistrées, shell, 
 
 ## Installation
 
-L'installateur est `kittyTerm Setup 2.0.0.exe`, pour Windows 10 / 11 x64. Il s'installe pour l'utilisateur courant, sans administrateur. Sans certificat de signature, SmartScreen peut signaler un éditeur inconnu. Choisissez quand même d'exécuter.
+L'installateur est [kittyTerm.Setup.2.0.0.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.0/kittyTerm.Setup.2.0.0.exe), pour Windows 10 / 11 x64. Il s'installe pour l'utilisateur courant, sans administrateur. Sans certificat de signature, SmartScreen peut signaler un éditeur inconnu. Choisissez quand même d'exécuter.
 
 Après l'installation, les données sont dans le dossier `data` du répertoire choisi. En développement, elles restent dans `%APPDATA%\kittyTerm`.
 
