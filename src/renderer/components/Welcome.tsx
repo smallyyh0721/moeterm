@@ -48,7 +48,7 @@ export function Welcome({
           : '改数据目录需要重启。日志目录可以在「设置」里直接改。安装之后，数据默认在安装目录下的 data 文件夹。'}
       </p>
       {dataDir ? <p className="path-line"><code>{dataDir}</code></p> : null}
-      <p className="hint">F11 全屏 · Ctrl+Shift+C 复制 · Ctrl+Shift+V 粘贴</p>
+      <p className="hint">F11 全屏 · Ctrl+B 收起连接栏 · Ctrl+Shift+C/V 复制粘贴 · 右键菜单 · 拖动标签排序</p>
     </div>
   );
 }

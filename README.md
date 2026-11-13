@@ -6,7 +6,7 @@
 
 kittyTerm 只做终端该做的事：保存连接、开 Shell、用 SFTP 传文件、记下日志。窗口是深色的古典终端，标题栏上的白猫是它的标志。启动时，这只猫会带着进度从 0% 走到 100%。
 
-[下载 Windows 安装包](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.0)
+[下载 Windows 安装包](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.1)
 
 ![首页](docs/style-previews/current.png)
 
@@ -15,7 +15,8 @@ kittyTerm 只做终端该做的事：保存连接、开 Shell、用 SFTP 传文�
 - SSH 终端。密码或私钥登录，主机密钥第一次记住，之后变了会拦住。
 - 同一条连接可以开 SFTP，上传和下载时显示进度和速度。
 - 左侧按目录整理连接。目录上的「全部」会一次打开里面的会话。
-- 复制、粘贴。右键把选中内容或整个缓冲区导出成 txt。
+- 复制、粘贴。右键一次打开菜单，可以复制、粘贴、全选，或把选中内容和整个缓冲区导出成 txt。
+- 顶部标签可以左右拖动，调整多个终端的先后顺序。
 - 每个终端单独记日志。日志目录可以马上改；数据目录改完要重启。
 - 分屏最多四格：左右、三格、四格。默认是单屏，打开后再分。每一格顶部有会话名称。
 - 三种界面风格：古典绿、橙黑、暖棕。橙黑和暖棕的首页带有主题画像。
@@ -33,7 +34,7 @@ kittyTerm 只做终端该做的事：保存连接、开 Shell、用 SFTP 传文�
 
 ## 安装
 
-安装包是 [kittyTerm.Setup.2.0.0.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.0/kittyTerm.Setup.2.0.0.exe)，给 Windows 10 / 11 x64。它按当前用户安装，不需要管理员。没有代码签名时，SmartScreen 可能提示未知发布者，选择仍要运行即可。
+安装包是 [kittyTerm.Setup.2.0.1.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.1/kittyTerm.Setup.2.0.1.exe)，给 Windows 10 / 11 x64。它按当前用户安装，不需要管理员。没有代码签名时，SmartScreen 可能提示未知发布者，选择仍要运行即可。
 
 安装之后，数据默认在安装目录下的 `data` 文件夹。开发时没有安装目录，数据在 `%APPDATA%\kittyTerm`。
 

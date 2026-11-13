@@ -119,6 +119,16 @@ html[data-button="round"] .brand-mark { border-radius: var(--radius); }
 .btn:disabled { opacity: 0.45; cursor: default; }
 .win-btn { width: 34px; height: 26px; padding: 0; }
 
+.side-mark { margin-left: 4px; color: var(--amber); font-weight: 700; }
+.btn.on .side-mark { color: var(--phosphor); }
+.side-edge {
+  width: 22px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  writing-mode: vertical-rl; letter-spacing: 0.18em;
+  background: var(--title-b); color: var(--phosphor);
+  border: 0; border-right: 1px solid var(--phosphor-dim); padding: 0;
+}
+.side-edge .side-mark { margin: 0; }
 .body { flex: 1; min-height: 0; display: flex; }
 .sidebar {
   display: flex; flex-direction: column;
@@ -179,8 +189,10 @@ html[data-button="round"] .brand-mark { border-radius: var(--radius); }
   border: 1px solid var(--line);
   border-bottom: 0;
   user-select: none;
+  cursor: grab;
 }
 .tab.active { background: var(--stage); color: var(--phosphor); border-color: var(--phosphor-dim); }
+.tab.dragging { opacity: 0.55; cursor: grabbing; }
 .tab-close { border: 0; background: transparent; color: var(--muted); padding: 0 2px; }
 .tab-close:hover { color: white; }
 .terminal-stack { flex: 1; min-height: 0; position: relative; background: var(--terminal); }
@@ -313,7 +325,7 @@ html[data-button="round"] .brand-mark { border-radius: var(--radius); }
 .progress { display: flex; gap: 16px; padding: 4px 10px; color: var(--amber); }
 
 .pet {
-  position: absolute; width: 112px; z-index: 4;
+  position: absolute; width: 112px; z-index: 6;
   cursor: grab; user-select: none; touch-action: none;
 }
 .pet-bob {

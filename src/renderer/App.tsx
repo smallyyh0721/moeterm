@@ -9,6 +9,7 @@ import { TitleBar } from './components/TitleBar';
 import { Welcome } from './components/Welcome';
 import { applyTheme, themeById } from '../themes/registry';
 import { type SecretKind, type TabModel, type TypedSecret, neededPrompt } from './lib/prompt';
+import { dropIndex, reorder } from './lib/order';
 import { closeSlot, focusTab, paneGridArea, placeNewTab, seedSlots, type SplitLayout } from './lib/split';
 
 const TerminalPane = lazy(() => import('./components/TerminalPane').then((mod) => ({ default: mod.TerminalPane })));
@@ -55,15 +56,18 @@ function Shell() {
   const [confirm, setConfirm] = useState<{ text: string; ok: string; run: () => void } | null>(null);
   const [secretAsk, setSecretAsk] = useState<SecretAsk | null>(null);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const tabsRef = useRef<TabModel[]>([]);
   const activeIdRef = useRef<string | null>(null);
   const splitRef = useRef<SplitLayout>('single');
   const stackRef = useRef<HTMLDivElement>(null);
+  const toggleSideRef = useRef<() => void>(() => {});
   const secretsRef = useRef(new Map<string, TypedSecret>());
   const toastRef = useRef<(text: string) => void>(() => undefined);
   const toggleLogRef = useRef<() => void>(() => undefined);
   const fontTimer = useRef<number | null>(null);
   const pendingFont = useRef<number | null>(null);
+  const suppressTabClick = useRef(false);
   tabsRef.current = tabs;
   activeIdRef.current = activeId;
   splitRef.current = split;
@@ -144,6 +148,12 @@ function Shell() {
       } else if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'l') {
         event.preventDefault();
         toggleLogRef.current();
+      } else if (event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey && event.key.toLowerCase() === 'b') {
+        const target = event.target;
+        if (target instanceof Element && target.closest('input, textarea') && !target.closest('.xterm')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        toggleSideRef.current();
       }
     };
     window.addEventListener('keydown', onKey, true);
@@ -204,6 +214,11 @@ function Shell() {
   }
   toggleLogRef.current = () => {
     void toggleActiveLog();
+  };
+  toggleSideRef.current = () => {
+    const sidebarHidden = !settings.sidebarHidden;
+    setSettings((current) => ({ ...current, sidebarHidden }));
+    void patchSettings({ sidebarHidden });
   };
 
   async function openConnection(connection: PublicConnection, options?: { force?: boolean; secret?: TypedSecret; trust?: boolean; tabLocalId?: string }) {
@@ -341,6 +356,40 @@ function Shell() {
     else await openConnection(ask.connection, { force: true, secret, trust: ask.trust, tabLocalId: ask.tabLocalId });
   }
 
+  function startTabDrag(event: ReactPointerEvent<HTMLDivElement>, localId: string) {
+    if (event.button !== 0) return;
+    if ((event.target as HTMLElement).closest('.tab-close')) return;
+    const startX = event.clientX;
+    let moved = false;
+    const move = (ev: PointerEvent) => {
+      if (!moved && Math.abs(ev.clientX - startX) < 6) return;
+      if (!moved) {
+        moved = true;
+        setDraggingId(localId);
+      }
+      const rects = Array.from(document.querySelectorAll<HTMLElement>('.tabbar .tab')).map((node) => {
+        const rect = node.getBoundingClientRect();
+        return { left: rect.left, width: rect.width };
+      });
+      setTabs((current) => {
+        const from = current.findIndex((tab) => tab.localId === localId);
+        const to = dropIndex(from, ev.clientX, rects);
+        if (from < 0 || from === to) return current;
+        return reorder(current, from, to);
+      });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setDraggingId(null);
+      if (!moved) return;
+      suppressTabClick.current = true;
+      window.setTimeout(() => { suppressTabClick.current = false; }, 0);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
   const connectedIds = new Set(tabs.filter((tab) => tab.status === 'connected').map((tab) => tab.connectionId));
   const connectingIds = new Set(tabs.filter((tab) => tab.status === 'connecting').map((tab) => tab.connectionId));
   const folders = folderOptions(tree as unknown as StoredNode[]);
@@ -352,9 +401,11 @@ function Shell() {
         logOn={Boolean(active?.logging)}
         petOn={settings.petEnabled}
         sftpOn={Boolean(sftpConnection)}
+        sideOn={!settings.sidebarHidden}
         split={split}
         onLog={() => void toggleActiveLog()}
         onPet={() => void patchSettings({ petEnabled: !settings.petEnabled })}
+        onSide={() => toggleSideRef.current()}
         onSplit={(layout) => {
           if (layout === 'single' || layout === split) {
             setSplit('single');
@@ -379,6 +430,12 @@ function Shell() {
         onSettings={() => setSettingsOpen(true)}
       />
       <div className="body">
+        {settings.sidebarHidden ? (
+          <button type="button" className="side-edge" onClick={() => toggleSideRef.current()} title="展开连接栏">
+            <span className="side-mark">»</span>连接
+          </button>
+        ) : (
+        <>
         <Sidebar
           tree={tree}
           width={settings.sidebarWidth}
@@ -439,13 +496,21 @@ function Shell() {
             window.addEventListener('pointerup', up);
           }}
         />
+        </>
+        )}
         <main className="stage">
           <div className="tabbar">
             {tabs.map((tab) => (
               <div
                 key={tab.localId}
-                className={tab.localId === activeId ? 'tab active' : 'tab'}
+                className={`tab${tab.localId === activeId ? ' active' : ''}${tab.localId === draggingId ? ' dragging' : ''}`}
+                title="拖动调整顺序"
+                onPointerDown={(event) => startTabDrag(event, tab.localId)}
                 onClick={() => {
+                  if (suppressTabClick.current) {
+                    suppressTabClick.current = false;
+                    return;
+                  }
                   setActiveId(tab.localId);
                   setSlots((current) => focusTab(current, tab.localId, splitRef.current, activeIdRef.current));
                 }}

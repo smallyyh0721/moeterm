@@ -77,6 +77,7 @@ export function registerIpc(deps: IpcDeps): void {
     else if (typeof body.logDir === 'string' && path.isAbsolute(body.logDir)) patch.logDir = body.logDir;
     if (typeof body.fontSize === 'number') patch.fontSize = body.fontSize;
     if (typeof body.sidebarWidth === 'number') patch.sidebarWidth = body.sidebarWidth;
+    if (typeof body.sidebarHidden === 'boolean') patch.sidebarHidden = body.sidebarHidden;
     if (body.petX === null || typeof body.petX === 'number') patch.petX = body.petX as number | null;
     if (body.petY === null || typeof body.petY === 'number') patch.petY = body.petY as number | null;
     if (typeof body.activePetId === 'string') patch.activePetId = body.activePetId;

@@ -6,7 +6,7 @@ Un terminal libre pour Windows, dans l'esprit d'un Linux classique. Il sert à o
 
 kittyTerm reste sur le travail d'un terminal : connexions enregistrées, shell, SFTP et journaux. La fenêtre est sombre, et le chat blanc de la barre de titre est son signe. Au démarrage, ce chat avance sur une barre de 0 % à 100 %.
 
-[Télécharger l'installateur Windows](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.0)
+[Télécharger l'installateur Windows](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.1)
 
 ![Accueil](docs/style-previews/current.png)
 
@@ -15,7 +15,8 @@ kittyTerm reste sur le travail d'un terminal : connexions enregistrées, shell, 
 - Terminal SSH. Connexion par mot de passe ou clé privée. La clé d'hôte est retenue au premier contact, et un changement ultérieur est bloqué jusqu'à votre accord.
 - SFTP sur la même connexion. Les envois et les réceptions affichent la progression et la vitesse.
 - Les connexions sont rangées dans des dossiers à gauche. **Tout ouvrir** lance chaque session du dossier.
-- Copier et coller. Le clic droit exporte la sélection ou tout le tampon en fichier texte.
+- Copier et coller. Un clic droit ouvre le menu : copier, coller, tout sélectionner, ou exporter la sélection ou tout le tampon en fichier texte.
+- Glisser un onglet en haut pour changer l'ordre des terminaux.
 - Chaque terminal a son journal. Le dossier des journaux se change tout de suite. Le dossier des données prend effet après un redémarrage.
 - Partager l'écran en deux, trois ou quatre cadres. Une fenêtre neuve commence avec un seul cadre. Chaque cadre affiche le nom de la session en haut.
 - Trois apparences : vert classique, orange et noir, brun chaud. Les thèmes orange et brun montrent un portrait sur l'accueil.
@@ -33,7 +34,7 @@ kittyTerm reste sur le travail d'un terminal : connexions enregistrées, shell, 
 
 ## Installation
 
-L'installateur est [kittyTerm.Setup.2.0.0.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.0/kittyTerm.Setup.2.0.0.exe), pour Windows 10 / 11 x64. Il s'installe pour l'utilisateur courant, sans administrateur. Sans certificat de signature, SmartScreen peut signaler un éditeur inconnu. Choisissez quand même d'exécuter.
+L'installateur est [kittyTerm.Setup.2.0.1.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.1/kittyTerm.Setup.2.0.1.exe), pour Windows 10 / 11 x64. Il s'installe pour l'utilisateur courant, sans administrateur. Sans certificat de signature, SmartScreen peut signaler un éditeur inconnu. Choisissez quand même d'exécuter.
 
 Après l'installation, les données sont dans le dossier `data` du répertoire choisi. En développement, elles restent dans `%APPDATA%\kittyTerm`.
 

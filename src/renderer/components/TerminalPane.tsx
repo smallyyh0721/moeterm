@@ -60,6 +60,7 @@ export function TerminalPane({
       cursorBlink: true,
       scrollback: 8000,
       allowProposedApi: false,
+      rightClickSelectsWord: false,
     });
     const fit = new FitAddon();
     term.loadAddon(fit);
@@ -106,19 +107,41 @@ export function TerminalPane({
       }
       return true;
     });
+    // Windows Chromium pastes into xterm's textarea on a second right-click
+    // unless that gesture is stopped before xterm focuses the textarea.
+    let blockPasteUntil = 0;
+    const onRightDown = (event: MouseEvent) => {
+      if (event.button === 2) blockPasteUntil = performance.now() + 400;
+    };
     const onMenu = (event: MouseEvent) => {
       event.preventDefault();
-      setMenu({ x: event.clientX, y: event.clientY });
+      event.stopPropagation();
+      blockPasteUntil = performance.now() + 400;
+      const width = 196;
+      const height = 248;
+      setMenu({
+        x: Math.max(8, Math.min(event.clientX, window.innerWidth - width - 8)),
+        y: Math.max(8, Math.min(event.clientY, window.innerHeight - height - 8)),
+      });
+    };
+    const onPaste = (event: ClipboardEvent) => {
+      if (performance.now() > blockPasteUntil) return;
+      event.preventDefault();
+      event.stopPropagation();
     };
     const onWheel = (event: WheelEvent) => {
       if (!event.ctrlKey) return;
       event.preventDefault();
       onFontStepRef.current(event.deltaY < 0 ? 1 : -1);
     };
-    host.addEventListener('contextmenu', onMenu);
+    host.addEventListener('mousedown', onRightDown, true);
+    host.addEventListener('contextmenu', onMenu, true);
+    host.addEventListener('paste', onPaste, true);
     host.addEventListener('wheel', onWheel, { passive: false });
     return () => {
-      host.removeEventListener('contextmenu', onMenu);
+      host.removeEventListener('mousedown', onRightDown, true);
+      host.removeEventListener('contextmenu', onMenu, true);
+      host.removeEventListener('paste', onPaste, true);
       host.removeEventListener('wheel', onWheel);
       term.dispose();
       termRef.current = null;
@@ -200,7 +223,12 @@ export function TerminalPane({
       {menu && term ? (
         <>
           <div className="menu-catch" onMouseDown={() => setMenu(null)} />
-          <div className="menu" style={{ left: menu.x, top: menu.y }} onMouseDown={(event) => event.stopPropagation()}>
+          <div
+            className="menu"
+            style={{ left: menu.x, top: menu.y }}
+            onMouseDown={(event) => event.stopPropagation()}
+            onContextMenu={(event) => event.preventDefault()}
+          >
             <button type="button" disabled={!term.hasSelection()} onClick={() => { void copySelection(term); setMenu(null); }}>复制</button>
             <button type="button" onClick={() => { void pasteInto(term); setMenu(null); }}>粘贴</button>
             <button type="button" onClick={() => { term.selectAll(); setMenu(null); }}>全选</button>

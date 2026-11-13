@@ -7,9 +7,11 @@ export function TitleBar({
   logOn,
   petOn,
   sftpOn,
+  sideOn,
   split,
   onLog,
   onPet,
+  onSide,
   onSplit,
   onSftp,
   onSettings,
@@ -18,9 +20,11 @@ export function TitleBar({
   logOn: boolean;
   petOn: boolean;
   sftpOn: boolean;
+  sideOn: boolean;
   split: SplitLayout;
   onLog: () => void;
   onPet: () => void;
+  onSide: () => void;
   onSplit: (layout: SplitLayout) => void;
   onSftp: () => void;
   onSettings: () => void;
@@ -33,6 +37,14 @@ export function TitleBar({
         <span className="brand-sub">{subtitle}</span>
       </div>
       <div className="title-actions">
+        <button
+          type="button"
+          className={sideOn ? 'btn on' : 'btn'}
+          onClick={onSide}
+          title={sideOn ? '收起连接栏' : '展开连接栏'}
+        >
+          连接 <span className="side-mark">{sideOn ? '«' : '»'}</span>
+        </button>
         <button type="button" className={logOn ? 'btn on' : 'btn'} onClick={onLog} title="只记录当前这个终端">
           日志{logOn ? ' 开' : ' 关'}
         </button>

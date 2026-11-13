@@ -53,6 +53,9 @@ export function Pet({
   const [facing, setFacing] = useState(1);
   const [sheetUrl, setSheetUrl] = useState<string | null>(null);
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const onPlaceRef = useRef(onPlace);
+  onPlaceRef.current = onPlace;
   const signalRef = useRef(signal);
   const loopIndex = useRef(0);
   signalRef.current = signal;
@@ -90,7 +93,7 @@ export function Pet({
   }, [pet, signal]);
 
   useEffect(() => {
-    if (pet || !settings.petEnabled) return;
+    if (!settings.petEnabled || (pet && sheetUrl)) return;
     let cancel = false;
     void loadPose(action).then((url) => {
       if (!cancel) setPoseSrc(url);
@@ -98,7 +101,7 @@ export function Pet({
     return () => {
       cancel = true;
     };
-  }, [action, pet, settings.petEnabled]);
+  }, [action, pet, sheetUrl, settings.petEnabled]);
 
   useEffect(() => {
     if (pet || !settings.petEnabled) return;
@@ -123,6 +126,28 @@ export function Pet({
     return () => window.clearInterval(timer);
   }, [pet]);
 
+  useEffect(() => {
+    if (!settings.petEnabled || settings.petX === null || settings.petY === null) return;
+    const node = frameRef.current;
+    const parent = node?.parentElement;
+    if (!node || !parent) return;
+    const pullIntoView = () => {
+      const bounds = parent.getBoundingClientRect();
+      const width = node.offsetWidth || 112;
+      const height = node.offsetHeight || 124;
+      if (bounds.width < 80 || bounds.height < 80) return;
+      const maxX = Math.max(0, bounds.width - width);
+      const maxY = Math.max(0, bounds.height - height);
+      const x = Math.min(Math.max(0, settings.petX ?? 0), maxX);
+      const y = Math.min(Math.max(0, settings.petY ?? 0), maxY);
+      if (x !== settings.petX || y !== settings.petY) onPlaceRef.current(Math.round(x), Math.round(y));
+    };
+    pullIntoView();
+    const observer = new ResizeObserver(pullIntoView);
+    observer.observe(parent);
+    return () => observer.disconnect();
+  }, [settings.petEnabled, settings.petX, settings.petY]);
+
   if (!settings.petEnabled) return null;
 
   const style: CSSProperties =
@@ -131,7 +156,8 @@ export function Pet({
 
   return (
     <div
-      className={`pet ${pet ? 'sprite' : ''} act-${action}`}
+      ref={frameRef}
+      className={`pet ${pet && sheetUrl ? 'sprite' : ''} act-${action}`}
       style={style}
       onPointerEnter={() => {
         setHovered(true);

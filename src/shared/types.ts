@@ -56,6 +56,7 @@ export interface Settings {
   logEnabled: boolean;
   logDir: string | null;
   sidebarWidth: number;
+  sidebarHidden: boolean;
   activePetId: string;
   theme: string;
 }
@@ -126,6 +127,7 @@ export const defaultSettings = (): Settings => ({
   logEnabled: false,
   logDir: null,
   sidebarWidth: 280,
+  sidebarHidden: false,
   activePetId: 'builtin',
   theme: 'classic',
 });

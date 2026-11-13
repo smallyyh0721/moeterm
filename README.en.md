@@ -6,7 +6,7 @@ A classical Linux-style free terminal for Windows. Use it for SSH and file trans
 
 kittyTerm stays with what a terminal is for: saved connections, a shell, SFTP, and logs. The window is a dark classical terminal, and the white cat in the title bar is its mark. While the app starts, that cat walks a progress bar from 0% to 100%.
 
-[Download the Windows installer](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.0)
+[Download the Windows installer](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.1)
 
 ![Home](docs/style-previews/current.png)
 
@@ -15,7 +15,8 @@ kittyTerm stays with what a terminal is for: saved connections, a shell, SFTP, a
 - An SSH terminal. Sign in with a password or a private key. The host key is remembered on first connect, and a later change is blocked until you accept it.
 - Open SFTP on the same connection. Uploads and downloads show progress and speed.
 - Keep connections in folders on the left. **Open all** on a folder starts every session inside it.
-- Copy and paste. Right-click to export the selection or the whole buffer as a text file.
+- Copy and paste. One right-click opens the menu: copy, paste, select all, or export the selection or the whole buffer as a text file.
+- Drag a tab along the top to change the order of open terminals.
 - Each terminal has its own log. The log folder can be changed immediately. The data folder takes effect after a restart.
 - Split the view into two, three, or four panes. A new window starts as one pane. Each pane shows the session name at the top.
 - Three looks: classical green, orange-black, and warm brown. The orange and warm themes place a portrait on the home screen.
@@ -33,7 +34,7 @@ kittyTerm stays with what a terminal is for: saved connections, a shell, SFTP, a
 
 ## Install
 
-The installer is [kittyTerm.Setup.2.0.0.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.0/kittyTerm.Setup.2.0.0.exe) for Windows 10 / 11 x64. It installs for the current user and does not need an administrator. Without a code-signing certificate, SmartScreen may warn about an unknown publisher. Choose to run it anyway.
+The installer is [kittyTerm.Setup.2.0.1.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.1/kittyTerm.Setup.2.0.1.exe) for Windows 10 / 11 x64. It installs for the current user and does not need an administrator. Without a code-signing certificate, SmartScreen may warn about an unknown publisher. Choose to run it anyway.
 
 After installation, data lives in the `data` folder under the install directory. During development there is no install directory, so data stays in `%APPDATA%\kittyTerm`.
 

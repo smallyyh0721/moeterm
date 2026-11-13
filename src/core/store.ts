@@ -96,6 +96,7 @@ export class DataStore {
     next.sidebarWidth = clamp(Math.round(next.sidebarWidth), LIMITS.sideMin, LIMITS.sideMax);
     next.petEnabled = Boolean(next.petEnabled);
     next.logEnabled = Boolean(next.logEnabled);
+    next.sidebarHidden = Boolean(next.sidebarHidden);
     if (typeof next.activePetId !== 'string' || !/^(builtin|[a-z0-9]+(?:-[a-z0-9]+)*)$/.test(next.activePetId)) {
       next.activePetId = 'builtin';
     }
