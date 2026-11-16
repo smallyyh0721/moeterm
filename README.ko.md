@@ -6,7 +6,7 @@
 
 kittyTerm이 하는 일은 터미널의 일입니다. 연결 저장, 셸, SFTP, 로그. 창은 어두운 고전 터미널이고, 제목 막대의 흰 고양이가 표식입니다. 시작할 때 그 고양이는 진행 막대를 0%에서 100%까지 갑니다.
 
-[Windows 설치 파일 받기](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.1)
+[Windows 설치 파일 받기](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.2)
 
 ![홈](docs/style-previews/current.png)
 
@@ -34,7 +34,7 @@ kittyTerm이 하는 일은 터미널의 일입니다. 연결 저장, 셸, SFTP, 
 
 ## 설치
 
-설치 파일은 [kittyTerm.Setup.2.0.1.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.1/kittyTerm.Setup.2.0.1.exe)입니다. Windows 10 / 11 x64용이며 현재 사용자에게 설치되고 관리자는 필요 없습니다. 서명 인증서가 없어서 SmartScreen이 알 수 없는 게시자를 알릴 수 있습니다. 그대로 실행을 고르십시오.
+설치 파일은 [kittyTerm.Setup.2.0.2.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.2/kittyTerm.Setup.2.0.2.exe)입니다. Windows 10 / 11 x64용이며 현재 사용자에게 설치되고 관리자는 필요 없습니다. 서명 인증서가 없어서 SmartScreen이 알 수 없는 게시자를 알릴 수 있습니다. 그대로 실행을 고르십시오.
 
 설치 뒤 데이터는 설치 위치의 `data` 폴더에 있습니다. 개발 중에는 설치 위치가 없으므로 `%APPDATA%\kittyTerm`에 있습니다.
 

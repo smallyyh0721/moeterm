@@ -6,7 +6,7 @@
 
 kittyTerm 只做终端该做的事：保存连接、开 Shell、用 SFTP 传文件、记下日志。窗口是深色的古典终端，标题栏上的白猫是它的标志。启动时，这只猫会带着进度从 0% 走到 100%。
 
-[下载 Windows 安装包](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.1)
+[下载 Windows 安装包](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.2)
 
 ![首页](docs/style-previews/current.png)
 
@@ -34,7 +34,7 @@ kittyTerm 只做终端该做的事：保存连接、开 Shell、用 SFTP 传文�
 
 ## 安装
 
-安装包是 [kittyTerm.Setup.2.0.1.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.1/kittyTerm.Setup.2.0.1.exe)，给 Windows 10 / 11 x64。它按当前用户安装，不需要管理员。没有代码签名时，SmartScreen 可能提示未知发布者，选择仍要运行即可。
+安装包是 [kittyTerm.Setup.2.0.2.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.2/kittyTerm.Setup.2.0.2.exe)，给 Windows 10 / 11 x64。它按当前用户安装，不需要管理员。没有代码签名时，SmartScreen 可能提示未知发布者，选择仍要运行即可。
 
 安装之后，数据默认在安装目录下的 `data` 文件夹。开发时没有安装目录，数据在 `%APPDATA%\kittyTerm`。
 

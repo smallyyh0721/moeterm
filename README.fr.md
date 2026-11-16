@@ -6,7 +6,7 @@ Un terminal libre pour Windows, dans l'esprit d'un Linux classique. Il sert à o
 
 kittyTerm reste sur le travail d'un terminal : connexions enregistrées, shell, SFTP et journaux. La fenêtre est sombre, et le chat blanc de la barre de titre est son signe. Au démarrage, ce chat avance sur une barre de 0 % à 100 %.
 
-[Télécharger l'installateur Windows](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.1)
+[Télécharger l'installateur Windows](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.2)
 
 ![Accueil](docs/style-previews/current.png)
 
@@ -34,7 +34,7 @@ kittyTerm reste sur le travail d'un terminal : connexions enregistrées, shell, 
 
 ## Installation
 
-L'installateur est [kittyTerm.Setup.2.0.1.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.1/kittyTerm.Setup.2.0.1.exe), pour Windows 10 / 11 x64. Il s'installe pour l'utilisateur courant, sans administrateur. Sans certificat de signature, SmartScreen peut signaler un éditeur inconnu. Choisissez quand même d'exécuter.
+L'installateur est [kittyTerm.Setup.2.0.2.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.2/kittyTerm.Setup.2.0.2.exe), pour Windows 10 / 11 x64. Il s'installe pour l'utilisateur courant, sans administrateur. Sans certificat de signature, SmartScreen peut signaler un éditeur inconnu. Choisissez quand même d'exécuter.
 
 Après l'installation, les données sont dans le dossier `data` du répertoire choisi. En développement, elles restent dans `%APPDATA%\kittyTerm`.
 

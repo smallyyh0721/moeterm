@@ -6,7 +6,7 @@ Un terminal libre para Windows, con el aire de un Linux clásico. Sirve para abr
 
 kittyTerm se queda en lo que hace un terminal: conexiones guardadas, shell, SFTP y registros. La ventana es oscura, y el gato blanco de la barra de título es su marca. Al arrancar, ese gato recorre una barra del 0 % al 100 %.
 
-[Descargar el instalador de Windows](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.1)
+[Descargar el instalador de Windows](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.2)
 
 ![Inicio](docs/style-previews/current.png)
 
@@ -34,7 +34,7 @@ kittyTerm se queda en lo que hace un terminal: conexiones guardadas, shell, SFTP
 
 ## Instalación
 
-El instalador es [kittyTerm.Setup.2.0.1.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.1/kittyTerm.Setup.2.0.1.exe), para Windows 10 / 11 x64. Se instala para el usuario actual y no pide administrador. Sin certificado de firma, SmartScreen puede avisar de un editor desconocido. Elija ejecutarlo de todos modos.
+El instalador es [kittyTerm.Setup.2.0.2.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.2/kittyTerm.Setup.2.0.2.exe), para Windows 10 / 11 x64. Se instala para el usuario actual y no pide administrador. Sin certificado de firma, SmartScreen puede avisar de un editor desconocido. Elija ejecutarlo de todos modos.
 
 Después de instalar, los datos quedan en la carpeta `data` del directorio de instalación. En desarrollo no hay ese directorio, y los datos quedan en `%APPDATA%\kittyTerm`.
 

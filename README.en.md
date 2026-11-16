@@ -6,7 +6,7 @@ A classical Linux-style free terminal for Windows. Use it for SSH and file trans
 
 kittyTerm stays with what a terminal is for: saved connections, a shell, SFTP, and logs. The window is a dark classical terminal, and the white cat in the title bar is its mark. While the app starts, that cat walks a progress bar from 0% to 100%.
 
-[Download the Windows installer](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.1)
+[Download the Windows installer](https://github.com/smallyyh0721/moeterm/releases/tag/v2.0.2)
 
 ![Home](docs/style-previews/current.png)
 
@@ -34,7 +34,7 @@ kittyTerm stays with what a terminal is for: saved connections, a shell, SFTP, a
 
 ## Install
 
-The installer is [kittyTerm.Setup.2.0.1.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.1/kittyTerm.Setup.2.0.1.exe) for Windows 10 / 11 x64. It installs for the current user and does not need an administrator. Without a code-signing certificate, SmartScreen may warn about an unknown publisher. Choose to run it anyway.
+The installer is [kittyTerm.Setup.2.0.2.exe](https://github.com/smallyyh0721/moeterm/releases/download/v2.0.2/kittyTerm.Setup.2.0.2.exe) for Windows 10 / 11 x64. It installs for the current user and does not need an administrator. Without a code-signing certificate, SmartScreen may warn about an unknown publisher. Choose to run it anyway.
 
 After installation, data lives in the `data` folder under the install directory. During development there is no install directory, so data stays in `%APPDATA%\kittyTerm`.
 
